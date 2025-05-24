@@ -1,7 +1,3 @@
-mkdir -p "$(dirname applications/microservice-1/src/index.js)" && touch applications/microservice-1/src/index.js
-
-// applications/microservice-1/src/index.js
-
 const express = require('express')
 const cors = require('cors')
 const helmet = require('helmet')
