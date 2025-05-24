@@ -1,0 +1,19 @@
+apiVersion: v2
+name: microservice-1
+description: DogfyDiet Microservice 1 - API Gateway and Publisher
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+home: https://github.com/gavilanbe/dogfydiet-platform
+sources:
+  - https://github.com/gavilanbe/dogfydiet-platform
+maintainers:
+  - name: DogfyDiet Platform Team
+    email: nahuel@gavilanbe.io
+keywords:
+  - microservice
+  - api
+  - pubsub
+  - dogfydiet
+annotations:
+  category: Application
