@@ -22,5 +22,5 @@ gke_node_disk_size    = 50
 gke_max_node_count    = 5
 gke_min_node_count    = 1
 
-# Monitoring Configuration
+# Monitoring Configuration (change test)
 notification_email = "nahuelgavilanbe@gmail.com"
