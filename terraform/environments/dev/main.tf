@@ -83,6 +83,12 @@ module "vpc" {
   name_prefix  = local.name_prefix
   environment  = local.environment
   
+  private_subnet_cidr = var.private_subnet_cidr
+  public_subnet_cidr  = var.public_subnet_cidr
+  pods_cidr_range     = var.pods_cidr_range
+  services_cidr_range = var.services_cidr_range
+  gke_master_cidr     = var.gke_master_cidr
+  
   labels = local.common_labels
 }
 
@@ -95,8 +101,14 @@ module "gke" {
   name_prefix    = local.name_prefix
   environment    = local.environment
   
-  network_name    = module.vpc.network_name
-  subnet_name     = module.vpc.private_subnet_name
+  network_name           = module.vpc.network_name
+  subnet_name            = module.vpc.private_subnet_name
+  master_ipv4_cidr_block = var.gke_master_cidr
+  
+  min_node_count      = var.gke_min_node_count
+  max_node_count      = var.gke_max_node_count
+  node_machine_type   = var.gke_node_machine_type
+  node_disk_size_gb   = var.gke_node_disk_size
   
   labels = local.common_labels
   
@@ -140,9 +152,10 @@ module "firestore" {
 module "iam" {
   source = "../../modules/iam"
   
-  project_id     = var.project_id
-  name_prefix    = local.name_prefix
-  environment    = local.environment
+  project_id       = var.project_id
+  region           = var.region
+  name_prefix      = local.name_prefix
+  environment      = local.environment
   
   gke_cluster_name = module.gke.cluster_name
   
@@ -153,11 +166,12 @@ module "iam" {
 module "monitoring" {
   source = "../../modules/monitoring"
   
-  project_id      = var.project_id
-  name_prefix     = local.name_prefix
-  environment     = local.environment
+  project_id         = var.project_id
+  name_prefix        = local.name_prefix
+  environment        = local.environment
   
-  gke_cluster_name = module.gke.cluster_name
+  gke_cluster_name   = module.gke.cluster_name
+  notification_email = var.notification_email
   
   labels = local.common_labels
   
