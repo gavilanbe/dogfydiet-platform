@@ -1,0 +1,234 @@
+name: 'Build and Deploy Applications'
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'applications/**'
+      - 'k8s/**'
+      - '.github/workflows/build-deploy.yml'
+  
+  workflow_dispatch:
+    inputs:
+      deploy_frontend:
+        description: 'Deploy Frontend'
+        required: true
+        default: true
+        type: boolean
+      deploy_microservices:
+        description: 'Deploy Microservices'
+        required: true
+        default: true
+        type: boolean
+
+env:
+  REGISTRY_REGION: us-central1
+  PROJECT_ID: nahuelgabe-test
+  REPOSITORY: dogfydiet-dev-docker-repo
+
+jobs:
+  # Job to check what changed
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      frontend: ${{ steps.changes.outputs.frontend }}
+      microservice-1: ${{ steps.changes.outputs.microservice-1 }}
+      microservice-2: ${{ steps.changes.outputs.microservice-2 }}
+      k8s: ${{ steps.changes.outputs.k8s }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v2
+        id: changes
+        with:
+          filters: |
+            frontend:
+              - 'applications/frontend/**'
+            microservice-1:
+              - 'applications/microservice-1/**'
+            microservice-2:
+              - 'applications/microservice-2/**'
+            k8s:
+              - 'k8s/**'
+
+  # Build and push Docker images
+  build-microservice-1:
+    needs: changes
+    if: needs.changes.outputs.microservice-1 == 'true' || github.event.inputs.deploy_microservices == 'true'
+    runs-on: ubuntu-latest
+    environment: dev
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Authenticate to Google Cloud
+      uses: google-github-actions/auth@v2
+      with:
+        credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
+
+    - name: Configure Docker to use gcloud as a credential helper
+      run: gcloud auth configure-docker ${{ env.REGISTRY_REGION }}-docker.pkg.dev
+
+    - name: Build Docker image
+      run: |
+        cd applications/microservice-1
+        docker build -t ${{ env.REGISTRY_REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/microservice-1:${{ github.sha }} .
+        docker build -t ${{ env.REGISTRY_REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/microservice-1:latest .
+
+    - name: Push Docker image
+      run: |
+        docker push ${{ env.REGISTRY_REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/microservice-1:${{ github.sha }}
+        docker push ${{ env.REGISTRY_REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/microservice-1:latest
+
+  build-microservice-2:
+    needs: changes
+    if: needs.changes.outputs.microservice-2 == 'true' || github.event.inputs.deploy_microservices == 'true'
+    runs-on: ubuntu-latest
+    environment: dev
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Authenticate to Google Cloud
+      uses: google-github-actions/auth@v2
+      with:
+        credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
+
+    - name: Configure Docker to use gcloud as a credential helper
+      run: gcloud auth configure-docker ${{ env.REGISTRY_REGION }}-docker.pkg.dev
+
+    - name: Build Docker image
+      run: |
+        cd applications/microservice-2
+        docker build -t ${{ env.REGISTRY_REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/microservice-2:${{ github.sha }} .
+        docker build -t ${{ env.REGISTRY_REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/microservice-2:latest .
+
+    - name: Push Docker image
+      run: |
+        docker push ${{ env.REGISTRY_REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/microservice-2:${{ github.sha }}
+        docker push ${{ env.REGISTRY_REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/microservice-2:latest
+
+  # Deploy frontend
+  deploy-frontend:
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true' || github.event.inputs.deploy_frontend == 'true'
+    runs-on: ubuntu-latest
+    environment: dev
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: applications/frontend/package-lock.json
+
+    - name: Install dependencies
+      run: |
+        cd applications/frontend
+        npm ci
+
+    - name: Build frontend
+      run: |
+        cd applications/frontend
+        npm run build
+      env:
+        VUE_APP_API_URL: ${{ secrets.API_URL }}
+        VUE_APP_ENVIRONMENT: dev
+
+    - name: Authenticate to Google Cloud
+      uses: google-github-actions/auth@v2
+      with:
+        credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
+
+    - name: Deploy to Cloud Storage
+      run: |
+        cd applications/frontend
+        gsutil -m rsync -r -d dist/ gs://${{ secrets.FRONTEND_BUCKET_NAME }}/
+        gsutil -m setmeta -h "Cache-Control:public, max-age=3600" gs://${{ secrets.FRONTEND_BUCKET_NAME }}/**/*.html
+        gsutil -m setmeta -h "Cache-Control:public, max-age=31536000" gs://${{ secrets.FRONTEND_BUCKET_NAME }}/**/*.{js,css,png,jpg,jpeg,gif,ico,svg}
+
+  # Deploy microservices to GKE
+  deploy-microservices:
+    needs: [build-microservice-1, build-microservice-2]
+    if: always() && (needs.build-microservice-1.result == 'success' || needs.build-microservice-2.result == 'success')
+    runs-on: ubuntu-latest
+    environment: dev
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Authenticate to Google Cloud
+      uses: google-github-actions/auth@v2
+      with:
+        credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
+
+    - name: Get GKE credentials
+      run: |
+        gcloud container clusters get-credentials dogfydiet-dev-gke-cluster --region us-central1 --project ${{ env.PROJECT_ID }}
+
+    - name: Setup Helm
+      uses: azure/setup-helm@v3
+      with:
+        version: '3.12.0'
+
+    - name: Deploy Microservice 1
+      if: needs.build-microservice-1.result == 'success'
+      run: |
+        cd k8s/helm-charts/microservice-1
+        helm upgrade --install microservice-1 . \
+          --namespace default \
+          --set image.repository=${{ env.REGISTRY_REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/microservice-1 \
+          --set image.tag=${{ github.sha }} \
+          --set serviceAccount.name=microservice-1 \
+          --set serviceAccount.annotations."iam\.gke\.io/gcp-service-account"=dogfydiet-dev-microservice-1@${{ env.PROJECT_ID }}.iam.gserviceaccount.com \
+          --wait
+
+    - name: Deploy Microservice 2
+      if: needs.build-microservice-2.result == 'success'
+      run: |
+        cd k8s/helm-charts/microservice-2
+        helm upgrade --install microservice-2 . \
+          --namespace default \
+          --set image.repository=${{ env.REGISTRY_REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/microservice-2 \
+          --set image.tag=${{ github.sha }} \
+          --set serviceAccount.name=microservice-2 \
+          --set serviceAccount.annotations."iam\.gke\.io/gcp-service-account"=dogfydiet-dev-microservice-2@${{ env.PROJECT_ID }}.iam.gserviceaccount.com \
+          --wait
+
+    - name: Verify deployment
+      run: |
+        kubectl get pods -l app.kubernetes.io/instance=microservice-1 -o wide
+        kubectl get pods -l app.kubernetes.io/instance=microservice-2 -o wide
+        kubectl get services
+
+    - name: Deployment Summary
+      run: |
+        echo "## 🚀 Application Deployment Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Deployed Components:" >> $GITHUB_STEP_SUMMARY
+        echo "- **Frontend:** Deployed to Cloud Storage" >> $GITHUB_STEP_SUMMARY
+        echo "- **Microservice 1:** Image tag \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY  
+        echo "- **Microservice 2:** Image tag \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Next Steps:" >> $GITHUB_STEP_SUMMARY
+        echo "1. Test the application endpoints" >> $GITHUB_STEP_SUMMARY
+        echo "2. Monitor application health in GCP Console" >> $GITHUB_STEP_SUMMARY
+        echo "3. Check application logs: \`kubectl logs -l app=microservice-1\`" >> $GITHUB_STEP_SUMMARY

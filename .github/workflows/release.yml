@@ -1,0 +1,144 @@
+name: 'Release'
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  REGISTRY_REGION: us-central1
+  PROJECT_ID: nahuelgabe-test
+  REPOSITORY: dogfydiet-dev-docker-repo
+
+jobs:
+  generate-changelog:
+    runs-on: ubuntu-latest
+    outputs:
+      changelog: ${{ steps.changelog.outputs.changelog }}
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Generate Changelog
+      id: changelog
+      run: |
+        # Get the previous tag
+        PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+        
+        if [ -z "$PREVIOUS_TAG" ]; then
+          # If no previous tag, get all commits
+          COMMITS=$(git log --pretty=format:"- %s (%h)" --reverse)
+        else
+          # Get commits since previous tag
+          COMMITS=$(git log --pretty=format:"- %s (%h)" --reverse $PREVIOUS_TAG..HEAD)
+        fi
+        
+        # Create changelog
+        CHANGELOG="## Changes in ${GITHUB_REF_NAME}
+
+        ### Infrastructure Changes
+        $(echo "$COMMITS" | grep -E "(feat|fix|chore).*terraform|infrastructure|gcp|gke" || echo "- No infrastructure changes")
+
+        ### Application Changes
+        $(echo "$COMMITS" | grep -E "(feat|fix).*app|frontend|microservice|api" || echo "- No application changes")
+
+        ### DevOps Changes
+        $(echo "$COMMITS" | grep -E "(feat|fix|chore).*(ci|cd|pipeline|workflow|deploy)" || echo "- No DevOps changes")
+
+        ### Other Changes
+        $(echo "$COMMITS" | grep -vE "(terraform|infrastructure|gcp|gke|app|frontend|microservice|api|ci|cd|pipeline|workflow|deploy)" || echo "- No other changes")
+
+        ### Full Commit History
+        $COMMITS"
+        
+        # Save to file and output
+        echo "$CHANGELOG" > changelog.md
+        {
+          echo 'changelog<<EOF'
+          echo "$CHANGELOG"
+          echo EOF
+        } >> $GITHUB_OUTPUT
+
+    - name: Upload Changelog
+      uses: actions/upload-artifact@v4
+      with:
+        name: changelog
+        path: changelog.md
+
+  build-and-tag-images:
+    runs-on: ubuntu-latest
+    environment: dev
+    
+    strategy:
+      matrix:
+        service: [microservice-1, microservice-2]
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Extract version from tag
+      id: version
+      run: echo "version=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+
+    - name: Authenticate to Google Cloud
+      uses: google-github-actions/auth@v2
+      with:
+        credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
+
+    - name: Configure Docker to use gcloud as a credential helper
+      run: gcloud auth configure-docker ${{ env.REGISTRY_REGION }}-docker.pkg.dev
+
+    - name: Build and push release image
+      run: |
+        cd applications/${{ matrix.service }}
+        
+        # Build image with version tag
+        docker build -t ${{ env.REGISTRY_REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ matrix.service }}:${{ steps.version.outputs.version }} .
+        docker build -t ${{ env.REGISTRY_REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ matrix.service }}:stable .
+        
+        # Push images
+        docker push ${{ env.REGISTRY_REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ matrix.service }}:${{ steps.version.outputs.version }}
+        docker push ${{ env.REGISTRY_REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ matrix.service }}:stable
+
+  create-release:
+    needs: [generate-changelog, build-and-tag-images]
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Download Changelog
+      uses: actions/download-artifact@v4
+      with:
+        name: changelog
+
+    - name: Create GitHub Release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref_name }}
+        release_name: Release ${{ github.ref_name }}
+        body_path: changelog.md
+        draft: false
+        prerelease: false
+
+    - name: Release Summary
+      run: |
+        echo "## 🎉 Release ${{ github.ref_name }} Created!" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Released Components:" >> $GITHUB_STEP_SUMMARY
+        echo "- **microservice-1:** \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "- **microservice-2:** \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Docker Images:" >> $GITHUB_STEP_SUMMARY
+        echo "- \`${{ env.REGISTRY_REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/microservice-1:${GITHUB_REF_NAME#v}\`" >> $GITHUB_STEP_SUMMARY
+        echo "- \`${{ env.REGISTRY_REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/microservice-2:${GITHUB_REF_NAME#v}\`" >> $GITHUB_STEP_SUMMARY

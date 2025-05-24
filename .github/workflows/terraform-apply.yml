@@ -1,0 +1,90 @@
+name: 'Terraform Apply'
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'terraform/**'
+      - '.github/workflows/terraform-*.yml'
+
+env:
+  TF_VERSION: '1.5.7'
+  TF_IN_AUTOMATION: true
+  TF_INPUT: false
+
+jobs:
+  terraform-apply:
+    name: 'Terraform Apply'
+    runs-on: ubuntu-latest
+    environment: dev
+
+    defaults:
+      run:
+        shell: bash
+        working-directory: terraform/environments/dev
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: ${{ env.TF_VERSION }}
+
+    - name: Authenticate to Google Cloud
+      uses: google-github-actions/auth@v2
+      with:
+        credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
+
+    - name: Verify GCP Authentication
+      run: |
+        gcloud auth list
+        gcloud config list project
+
+    - name: Terraform Init
+      run: terraform init
+
+    - name: Terraform Validate
+      run: terraform validate
+
+    - name: Terraform Format Check
+      run: terraform fmt -check -recursive
+
+    - name: Terraform Plan
+      run: |
+        terraform plan -detailed-exitcode -out=tfplan
+      env:
+        TF_VAR_notification_email: ${{ secrets.NOTIFICATION_EMAIL }}
+
+    - name: Terraform Apply
+      run: terraform apply -auto-approve tfplan
+
+    - name: Output important values
+      run: |
+        echo "## 🚀 Infrastructure Deployed Successfully!" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Key Outputs:" >> $GITHUB_STEP_SUMMARY
+        echo "- **GKE Cluster:** $(terraform output -raw gke_cluster_name)" >> $GITHUB_STEP_SUMMARY
+        echo "- **Frontend URL:** $(terraform output -raw frontend_bucket_url)" >> $GITHUB_STEP_SUMMARY
+        echo "- **Load Balancer IP:** $(terraform output -raw load_balancer_ip)" >> $GITHUB_STEP_SUMMARY
+        echo "- **Docker Repository:** $(terraform output -raw docker_repository_url)" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Next Steps:" >> $GITHUB_STEP_SUMMARY
+        echo "1. Configure kubectl: \`$(terraform output -raw kubectl_config)\`" >> $GITHUB_STEP_SUMMARY
+        echo "2. Deploy applications using the CI/CD pipeline" >> $GITHUB_STEP_SUMMARY
+        echo "3. Access monitoring dashboard in GCP Console" >> $GITHUB_STEP_SUMMARY
+
+    - name: Save Terraform Outputs
+      run: |
+        terraform output -json > terraform-outputs.json
+
+    - name: Upload Terraform Outputs
+      uses: actions/upload-artifact@v4
+      with:
+        name: terraform-outputs
+        path: terraform/environments/dev/terraform-outputs.json
+        retention-days: 30
