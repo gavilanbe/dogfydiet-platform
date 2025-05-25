@@ -93,16 +93,16 @@ resource "google_container_cluster" "primary" {
     channel = var.release_channel
   }
 
-  # Binary authorization
-  binary_authorization {
-    evaluation_mode = "PROJECT_SINGLETON_POLICY_ENFORCE"
-  }
+  # # Binary authorization
+  # binary_authorization {
+  #   evaluation_mode = "PROJECT_SINGLETON_POLICY_ENFORCE"
+  # }
 
-  # Database encryption
-  database_encryption {
-    state    = "ENCRYPTED"
-    key_name = google_kms_crypto_key.gke.id
-  }
+  # # Database encryption
+  # database_encryption {
+  #   state    = "ENCRYPTED"
+  #   key_name = google_kms_crypto_key.gke.id
+  # }
 
   # Monitoring and logging
   monitoring_config {
@@ -129,11 +129,11 @@ resource "google_container_cluster" "primary" {
     ]
   }
 
-  # Security configuration
-  security_posture_config {
-    mode               = "BASIC"
-    vulnerability_mode = "VULNERABILITY_BASIC"
-  }
+  # # Security configuration
+  # security_posture_config {
+  #   mode               = "BASIC"
+  #   vulnerability_mode = "VULNERABILITY_BASIC"
+  # }
 
   # Maintenance policy
   maintenance_policy {
@@ -147,7 +147,7 @@ resource "google_container_cluster" "primary" {
 
   # Remove default node pool
   remove_default_node_pool = true
-  initial_node_count       = 1
+  #initial_node_count       = 1
 
   depends_on = [
     google_project_service.container,

@@ -23,7 +23,13 @@ variable "labels" {
 variable "database_name" {
   description = "Name of the Firestore database"
   type        = string
-  default     = "firestore_db"
+  default     = "(default)"
+}
+
+variable "app_engine_location" {
+  description = "The location ID for the App Engine application. This is immutable after creation."
+  type        = string
+  default     = "us-central"
 }
 
 variable "firestore_location" {

@@ -156,70 +156,70 @@ resource "google_pubsub_subscription_iam_member" "subscriber" {
   member       = "serviceAccount:${each.value}"
 }
 
-# Monitoring: Topic metrics
-resource "google_monitoring_alert_policy" "topic_undelivered_messages" {
-  count        = var.enable_monitoring ? 1 : 0
-  display_name = "${var.name_prefix} Pub/Sub Topic Undelivered Messages"
+# # Monitoring: Topic metrics
+# resource "google_monitoring_alert_policy" "topic_undelivered_messages" {
+#   count        = var.enable_monitoring ? 1 : 0
+#   display_name = "${var.name_prefix} Pub/Sub Topic Undelivered Messages"
 
-  documentation {
-    content = "Alert when there are too many undelivered messages in the Pub/Sub topic"
-  }
+#   documentation {
+#     content = "Alert when there are too many undelivered messages in the Pub/Sub topic"
+#   }
 
-  conditions {
-    display_name = "Undelivered messages condition"
+#   conditions {
+#     display_name = "Undelivered messages condition"
 
-    condition_threshold {
-      filter          = "resource.type=\"pubsub_topic\" AND resource.labels.topic_id=\"${google_pubsub_topic.main.name}\""
-      duration        = "300s"
-      comparison      = "COMPARISON_GT"
-      threshold_value = var.undelivered_messages_threshold
+#     condition_threshold {
+#       filter = "resource.type=\"pubsub_topic\" AND resource.labels.topic_id=\"${google_pubsub_topic.main.name}\" AND metric.type=\"pubsub.googleapis.com/topic/num_undelivered_messages\""
+#       duration        = "300s"
+#       comparison      = "COMPARISON_GT"
+#       threshold_value = var.undelivered_messages_threshold
 
-      aggregations {
-        alignment_period   = "300s"
-        per_series_aligner = "ALIGN_MEAN"
-      }
-    }
-  }
+#       aggregations {
+#         alignment_period   = "300s"
+#         per_series_aligner = "ALIGN_MEAN"
+#       }
+#     }
+#   }
 
-  alert_strategy {
-    auto_close = "1800s"
-  }
+#   alert_strategy {
+#     auto_close = "1800s"
+#   }
 
-  combiner              = "OR"
-  enabled               = true
-  notification_channels = var.notification_channels
-}
+#   combiner              = "OR"
+#   enabled               = true
+#   notification_channels = var.notification_channels
+# }
 
-# Monitoring: Subscription age metrics
-resource "google_monitoring_alert_policy" "subscription_oldest_unacked_message" {
-  count        = var.enable_monitoring ? 1 : 0
-  display_name = "${var.name_prefix} Pub/Sub Subscription Oldest Unacked Message"
+# # Monitoring: Subscription age metrics
+# resource "google_monitoring_alert_policy" "subscription_oldest_unacked_message" {
+#   count        = var.enable_monitoring ? 1 : 0
+#   display_name = "${var.name_prefix} Pub/Sub Subscription Oldest Unacked Message"
 
-  documentation {
-    content = "Alert when messages in subscription are too old"
-  }
+#   documentation {
+#     content = "Alert when messages in subscription are too old"
+#   }
 
-  conditions {
-    display_name = "Oldest unacked message age condition"
+#   conditions {
+#     display_name = "Oldest unacked message age condition"
 
-    condition_threshold {
-      filter          = "resource.type=\"pubsub_subscription\" AND resource.labels.subscription_id=\"${google_pubsub_subscription.microservice_2.name}\""
-      duration        = "300s"
-      comparison      = "COMPARISON_GT"
-      threshold_value = var.oldest_unacked_message_threshold
+#     condition_threshold {
+#       filter = "resource.type=\"pubsub_subscription\" AND resource.labels.subscription_id=\"${google_pubsub_subscription.microservice_2.name}\" AND metric.type=\"pubsub.googleapis.com/subscription/oldest_unacked_message_age\""
+#       duration        = "300s"
+#       comparison      = "COMPARISON_GT"
+#       threshold_value = var.oldest_unacked_message_threshold
 
-      aggregations {
-        alignment_period   = "300s"
-        per_series_aligner = "ALIGN_MAX"
-      }
-    }
-  }
+#       aggregations {
+#         alignment_period   = "300s"
+#         per_series_aligner = "ALIGN_MAX"
+#       }
+#     }
+#   }
 
-  alert_strategy {
-    auto_close = "1800s"
-  }
+#   alert_strategy {
+#     auto_close = "1800s"
+#   }
 
-  combiner              = "OR"
-  enabled               = true
-  notification_channels = var.notification_channels
-}
+#   combiner              = "OR"
+#   enabled               = true
+#   notification_channels = var.notification_channels
+# }
