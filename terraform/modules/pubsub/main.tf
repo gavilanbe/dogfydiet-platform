@@ -171,7 +171,7 @@ resource "google_monitoring_alert_policy" "topic_undelivered_messages" {
     condition_threshold {
       filter          = "resource.type=\"pubsub_topic\" AND resource.labels.topic_id=\"${google_pubsub_topic.main.name}\""
       duration        = "300s"
-      comparison      = "COMPARISON_GREATER_THAN"
+      comparison      = "COMPARISON_GT"
       threshold_value = var.undelivered_messages_threshold
 
       aggregations {

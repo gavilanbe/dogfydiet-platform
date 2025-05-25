@@ -191,7 +191,7 @@ resource "google_monitoring_alert_policy" "firestore_write_ops" {
     condition_threshold {
       filter          = "resource.type=\"gce_instance\" AND metric.type=\"firestore.googleapis.com/api/request_count\""
       duration        = "300s"
-      comparison      = "COMPARISON_GREATER_THAN"
+      comparison      = "COMPARISON_GT"
       threshold_value = var.write_ops_threshold
 
       aggregations {
