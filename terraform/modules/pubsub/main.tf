@@ -205,7 +205,7 @@ resource "google_monitoring_alert_policy" "subscription_oldest_unacked_message" 
     condition_threshold {
       filter          = "resource.type=\"pubsub_subscription\" AND resource.labels.subscription_id=\"${google_pubsub_subscription.microservice_2.name}\""
       duration        = "300s"
-      comparison      = "COMPARISON_GREATER_THAN"
+      comparison      = "COMPARISON_GT"
       threshold_value = var.oldest_unacked_message_threshold
 
       aggregations {
