@@ -23,7 +23,7 @@ resource "google_service_account" "cicd" {
 resource "google_service_account_iam_binding" "microservice_1_workload_identity" {
   service_account_id = google_service_account.microservice_1.name
   role               = "roles/iam.workloadIdentityUser"
-  
+
   members = [
     "serviceAccount:${var.project_id}.svc.id.goog[${var.k8s_namespace}/microservice-1]"
   ]
@@ -32,7 +32,7 @@ resource "google_service_account_iam_binding" "microservice_1_workload_identity"
 resource "google_service_account_iam_binding" "microservice_2_workload_identity" {
   service_account_id = google_service_account.microservice_2.name
   role               = "roles/iam.workloadIdentityUser"
-  
+
   members = [
     "serviceAccount:${var.project_id}.svc.id.goog[${var.k8s_namespace}/microservice-2]"
   ]
@@ -128,11 +128,11 @@ resource "google_service_account_key" "cicd_key" {
 # Secret Manager secrets for service accounts
 resource "google_secret_manager_secret" "microservice_1_sa" {
   secret_id = "${var.name_prefix}-microservice-1-sa"
-  
+
   replication {
     auto {}
   }
-  
+
   labels = var.labels
 }
 
@@ -143,11 +143,11 @@ resource "google_secret_manager_secret_version" "microservice_1_sa" {
 
 resource "google_secret_manager_secret" "microservice_2_sa" {
   secret_id = "${var.name_prefix}-microservice-2-sa"
-  
+
   replication {
     auto {}
   }
-  
+
   labels = var.labels
 }
 
@@ -172,13 +172,13 @@ resource "google_project_iam_custom_role" "microservice_minimal" {
   role_id     = "${var.name_prefix}_microservice_minimal"
   title       = "Microservice Minimal Permissions"
   description = "Minimal permissions required for microservices"
-  
+
   permissions = [
     "logging.logEntries.create",
     "monitoring.timeSeries.create",
     "cloudtrace.traces.patch"
   ]
-  
+
   stage = "GA"
 }
 
@@ -217,8 +217,8 @@ resource "google_artifact_registry_repository" "main" {
   repository_id = "${var.name_prefix}-docker-repo"
   description   = "Docker repository for ${var.environment} environment"
   format        = "DOCKER"
-  
+
   labels = var.labels
-  
+
   depends_on = [google_project_service.artifactregistry]
 }

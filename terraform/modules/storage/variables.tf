@@ -29,7 +29,7 @@ variable "bucket_location" {
 variable "force_destroy" {
   description = "Whether to force destroy the bucket when deleting"
   type        = bool
-  default     = true  # Set to false in production
+  default     = true # Set to false in production
 }
 
 variable "enable_versioning" {

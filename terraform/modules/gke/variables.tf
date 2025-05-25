@@ -46,7 +46,7 @@ variable "release_channel" {
   description = "The release channel for GKE cluster"
   type        = string
   default     = "REGULAR"
-  
+
   validation {
     condition     = contains(["RAPID", "REGULAR", "STABLE"], var.release_channel)
     error_message = "Release channel must be one of: RAPID, REGULAR, STABLE."
@@ -82,7 +82,7 @@ variable "node_disk_type" {
   description = "Disk type for GKE nodes"
   type        = string
   default     = "pd-standard"
-  
+
   validation {
     condition     = contains(["pd-standard", "pd-ssd", "pd-balanced"], var.node_disk_type)
     error_message = "Disk type must be one of: pd-standard, pd-ssd, pd-balanced."

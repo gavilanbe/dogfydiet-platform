@@ -23,7 +23,7 @@ variable "labels" {
 variable "message_retention_duration" {
   description = "How long to retain unacknowledged messages"
   type        = string
-  default     = "604800s"  # 7 days
+  default     = "604800s" # 7 days
 }
 
 variable "allowed_persistence_regions" {
@@ -48,7 +48,7 @@ variable "retain_acked_messages" {
 variable "subscription_ttl" {
   description = "TTL for the subscription if no activity"
   type        = string
-  default     = "2678400s"  # 31 days
+  default     = "2678400s" # 31 days
 }
 
 variable "enable_message_ordering" {
@@ -131,7 +131,7 @@ variable "schema_type" {
   description = "Type of the schema (AVRO or PROTOCOL_BUFFER)"
   type        = string
   default     = "AVRO"
-  
+
   validation {
     condition     = contains(["AVRO", "PROTOCOL_BUFFER"], var.schema_type)
     error_message = "Schema type must be either AVRO or PROTOCOL_BUFFER."
@@ -142,7 +142,7 @@ variable "schema_encoding" {
   description = "Encoding for the schema (JSON or BINARY)"
   type        = string
   default     = "JSON"
-  
+
   validation {
     condition     = contains(["JSON", "BINARY"], var.schema_encoding)
     error_message = "Schema encoding must be either JSON or BINARY."
@@ -190,5 +190,5 @@ variable "undelivered_messages_threshold" {
 variable "oldest_unacked_message_threshold" {
   description = "Threshold for oldest unacked message age in seconds"
   type        = number
-  default     = 600  # 10 minutes
+  default     = 600 # 10 minutes
 }

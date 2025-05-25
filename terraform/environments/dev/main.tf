@@ -1,6 +1,6 @@
 terraform {
   required_version = ">= 1.5"
-  
+
   required_providers {
     google = {
       source  = "hashicorp/google"
@@ -59,13 +59,13 @@ provider "helm" {
 locals {
   environment = var.environment
   project     = var.project_name
-  
+
   common_labels = {
     environment = local.environment
     project     = local.project
     managed_by  = "terraform"
   }
-  
+
   # Naming convention: {project}-{environment}-{resource}
   name_prefix = "${local.project}-${local.environment}"
 }
@@ -73,76 +73,76 @@ locals {
 # VPC Module
 module "vpc" {
   source = "../../modules/vpc"
-  
-  project_id   = var.project_id
-  region       = var.region
-  name_prefix  = local.name_prefix
-  environment  = local.environment
-  
+
+  project_id  = var.project_id
+  region      = var.region
+  name_prefix = local.name_prefix
+  environment = local.environment
+
   private_subnet_cidr = var.private_subnet_cidr
   public_subnet_cidr  = var.public_subnet_cidr
   pods_cidr_range     = var.pods_cidr_range
   services_cidr_range = var.services_cidr_range
   gke_master_cidr     = var.gke_master_cidr
-  
+
   labels = local.common_labels
 }
 
 # GKE Module
 module "gke" {
   source = "../../modules/gke"
-  
-  project_id     = var.project_id
-  region         = var.region
-  name_prefix    = local.name_prefix
-  environment    = local.environment
-  
+
+  project_id  = var.project_id
+  region      = var.region
+  name_prefix = local.name_prefix
+  environment = local.environment
+
   network_name           = module.vpc.network_name
   subnet_name            = module.vpc.private_subnet_name
   master_ipv4_cidr_block = var.gke_master_cidr
-  
-  min_node_count      = var.gke_min_node_count
-  max_node_count      = var.gke_max_node_count
-  node_machine_type   = var.gke_node_machine_type
-  node_disk_size_gb   = var.gke_node_disk_size
-  
+
+  min_node_count    = var.gke_min_node_count
+  max_node_count    = var.gke_max_node_count
+  node_machine_type = var.gke_node_machine_type
+  node_disk_size_gb = var.gke_node_disk_size
+
   labels = local.common_labels
-  
+
   depends_on = [module.vpc]
 }
 
 # Cloud Storage Module for Frontend
 module "storage" {
   source = "../../modules/storage"
-  
+
   project_id  = var.project_id
   name_prefix = local.name_prefix
   environment = local.environment
-  
+
   # CDN configuration
   enable_cdn      = true
   cdn_default_ttl = 3600
   cdn_max_ttl     = 86400
-  
+
   labels = local.common_labels
 }
 
 # Load Balancer Module
 module "loadbalancer" {
   source = "../../modules/loadbalancer"
-  
+
   project_id  = var.project_id
   name_prefix = local.name_prefix
   environment = local.environment
-  
+
   # Backend configuration
   default_backend_service = module.storage.backend_bucket_self_link
-  
+
   # HTTPS configuration (disabled for dev, enable in production)
   enable_https               = false
   create_managed_certificate = false
   # managed_certificate_domains = ["dogfydiet.example.com"]  # EJEMPLO
-  
+
   path_matchers = [
     {
       name            = "main"
@@ -155,64 +155,64 @@ module "loadbalancer" {
       ]
     }
   ]
-  
+
   # Cloud Armor configuration (PROD?)
   enable_cloud_armor   = false
   enable_rate_limiting = false
-  
+
   labels = local.common_labels
-  
+
   depends_on = [module.storage]
 }
 
 # Pub/Sub Module
 module "pubsub" {
   source = "../../modules/pubsub"
-  
+
   project_id  = var.project_id
   name_prefix = local.name_prefix
   environment = local.environment
-  
+
   labels = local.common_labels
 }
 
 # Firestore Module
 module "firestore" {
   source = "../../modules/firestore"
-  
+
   project_id  = var.project_id
   name_prefix = local.name_prefix
   environment = local.environment
-  
+
   labels = local.common_labels
 }
 
 # IAM Module
 module "iam" {
   source = "../../modules/iam"
-  
-  project_id       = var.project_id
-  region           = var.region
-  name_prefix      = local.name_prefix
-  environment      = local.environment
-  
+
+  project_id  = var.project_id
+  region      = var.region
+  name_prefix = local.name_prefix
+  environment = local.environment
+
   gke_cluster_name = module.gke.cluster_name
-  
+
   labels = local.common_labels
 }
 
 # Monitoring Module
 module "monitoring" {
   source = "../../modules/monitoring"
-  
-  project_id         = var.project_id
-  name_prefix        = local.name_prefix
-  environment        = local.environment
-  
+
+  project_id  = var.project_id
+  name_prefix = local.name_prefix
+  environment = local.environment
+
   gke_cluster_name   = module.gke.cluster_name
   notification_email = var.notification_email
-  
+
   labels = local.common_labels
-  
+
   depends_on = [module.gke]
 }

@@ -11,7 +11,7 @@ output "vpc_network_self_link" {
 
 output "private_subnet_name" {
   description = "The name of the private subnet"
-  value       = module.vpc.private_subnet_name  
+  value       = module.vpc.private_subnet_name
 }
 
 output "public_subnet_name" {

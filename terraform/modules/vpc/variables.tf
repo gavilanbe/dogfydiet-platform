@@ -61,5 +61,5 @@ variable "gke_master_cidr" {
 variable "ssh_source_ranges" {
   description = "Source IP ranges allowed for SSH access"
   type        = list(string)
-  default     = ["0.0.0.0/0"]  # Restrict this in production
+  default     = ["0.0.0.0/0"] # Restrict this in production
 }

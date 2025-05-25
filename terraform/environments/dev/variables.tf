@@ -16,7 +16,7 @@ variable "environment" {
   description = "The deployment environment"
   type        = string
   default     = "dev"
-  
+
   validation {
     condition     = contains(["dev", "staging", "prod"], var.environment)
     error_message = "Environment must be one of: dev, staging, prod."
@@ -38,7 +38,7 @@ variable "zone" {
 variable "notification_email" {
   description = "Email for monitoring notifications"
   type        = string
-  default     = "nahuel@example.com"  # Update with your email
+  default     = "nahuel@example.com" # Update with your email
 }
 
 # VPC Configuration
