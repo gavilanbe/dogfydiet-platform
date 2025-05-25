@@ -40,7 +40,7 @@ resource "google_monitoring_alert_policy" "gke_cpu_usage" {
     condition_threshold {
       filter         = "resource.type=\"k8s_container\" AND resource.labels.cluster_name=\"${var.gke_cluster_name}\""
       duration       = "300s"
-      comparison     = "COMPARISON_GREATER_THAN"
+      comparison     = "COMPARISON_GT"
       threshold_value = 0.8
       
       aggregations {
@@ -76,7 +76,7 @@ resource "google_monitoring_alert_policy" "gke_memory_usage" {
     condition_threshold {
       filter         = "resource.type=\"k8s_container\" AND resource.labels.cluster_name=\"${var.gke_cluster_name}\""
       duration       = "300s"
-      comparison     = "COMPARISON_GREATER_THAN"
+      comparison     = "COMPARISON_GT"
       threshold_value = 0.85
       
       aggregations {
@@ -112,7 +112,7 @@ resource "google_monitoring_alert_policy" "gke_node_not_ready" {
     condition_threshold {
       filter         = "resource.type=\"k8s_node\" AND resource.labels.cluster_name=\"${var.gke_cluster_name}\""
       duration       = "300s"
-      comparison     = "COMPARISON_LESS_THAN"
+      comparison     = "COMPARISON_LT"
       threshold_value = 1
       
       aggregations {
@@ -150,7 +150,7 @@ resource "google_monitoring_alert_policy" "http_error_rate" {
     condition_threshold {
       filter         = "resource.type=\"k8s_container\" AND metric.type=\"istio.io/service/server/request_count\""
       duration       = "300s"
-      comparison     = "COMPARISON_GREATER_THAN"
+      comparison     = "COMPARISON_GT"
       threshold_value = 0.05
       
       aggregations {
@@ -186,7 +186,7 @@ resource "google_monitoring_alert_policy" "http_latency" {
     condition_threshold {
       filter         = "resource.type=\"k8s_container\" AND metric.type=\"istio.io/service/server/response_latencies\""
       duration       = "300s"
-      comparison     = "COMPARISON_GREATER_THAN"
+      comparison     = "COMPARISON_GT"
       threshold_value = 2000  # 2 seconds in milliseconds
       
       aggregations {
@@ -223,7 +223,7 @@ resource "google_monitoring_alert_policy" "low_request_volume" {
     condition_threshold {
       filter         = "resource.type=\"k8s_container\" AND metric.type=\"istio.io/service/server/request_count\""
       duration       = "600s"
-      comparison     = "COMPARISON_LESS_THAN"
+      comparison     = "COMPARISON_LT"
       threshold_value = 10
       
       aggregations {
@@ -249,7 +249,7 @@ resource "google_logging_metric" "error_count" {
   filter = "resource.type=\"k8s_container\" AND severity>=ERROR AND resource.labels.cluster_name=\"${var.gke_cluster_name}\""
   
   metric_descriptor {
-    metric_kind = "COUNTER"
+    metric_kind = "CUMULATIVE"
     value_type  = "INT64"
     display_name = "Error Log Count"
   }
@@ -277,7 +277,7 @@ resource "google_monitoring_alert_policy" "error_logs" {
     condition_threshold {
       filter         = "metric.type=\"logging.googleapis.com/user/${google_logging_metric.error_count.name}\""
       duration       = "300s"
-      comparison     = "COMPARISON_GREATER_THAN"
+      comparison     = "COMPARISON_GT"
       threshold_value = 10
       
       aggregations {

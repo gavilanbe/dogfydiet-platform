@@ -10,7 +10,7 @@ output "notification_channel_name" {
 
 output "dashboard_url" {
   description = "URL to access the monitoring dashboard"
-  value       = "https://console.cloud.google.com/monitoring/dashboards/custom/${basename(google_monitoring_dashboard.main.name)}?project=${var.project_id}"
+  value       = "https://console.cloud.google.com/monitoring/dashboards/custom/${basename(google_monitoring_dashboard.main.id)}?project=${var.project_id}"
 }
 
 output "alert_policies" {
