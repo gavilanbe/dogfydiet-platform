@@ -188,7 +188,6 @@ module "firestore" {
 }
 
 # IAM Module
-# IAM Module
 module "iam" {
   source = "../../modules/iam"
 
