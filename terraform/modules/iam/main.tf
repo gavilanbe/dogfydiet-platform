@@ -169,7 +169,7 @@ resource "google_service_account_key" "microservice_2_key" {
 
 # Custom IAM roles for fine-grained permissions
 resource "google_project_iam_custom_role" "microservice_minimal" {
-  role_id     = "${var.name_prefix}_microservice_minimal"
+  role_id     = "${replace(var.name_prefix, "-", "_")}_microservice_minimal"
   title       = "Microservice Minimal Permissions"
   description = "Minimal permissions required for microservices"
 
