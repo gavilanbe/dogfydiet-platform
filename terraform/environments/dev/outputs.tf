@@ -53,6 +53,22 @@ output "frontend_bucket_url" {
   value       = module.storage.frontend_bucket_url
 }
 
+# Load Balancer Outputs
+output "load_balancer_ip" {
+  description = "The static IP address of the load balancer"
+  value       = module.loadbalancer.load_balancer_ip
+}
+
+output "load_balancer_url" {
+  description = "The URL to access the application via load balancer"
+  value       = module.loadbalancer.load_balancer_url
+}
+
+output "frontend_url" {
+  description = "The URL to access the frontend application"
+  value       = "http://${module.loadbalancer.load_balancer_ip}"
+}
+
 # Pub/Sub Outputs
 output "pubsub_topic_name" {
   description = "The name of the Pub/Sub topic"
@@ -81,8 +97,45 @@ output "microservice_2_service_account" {
   value       = module.iam.microservice_2_service_account
 }
 
+output "docker_repository_url" {
+  description = "URL of the Docker repository"
+  value       = module.iam.docker_repository_url
+}
+
 # Monitoring Outputs
 output "monitoring_notification_channel" {
   description = "Monitoring notification channel ID"
   value       = module.monitoring.notification_channel_id
+}
+
+# kubectl configuration command
+output "kubectl_config" {
+  description = "Command to configure kubectl"
+  value       = module.gke.kubectl_config
+}
+
+# Important URLs and commands
+output "setup_instructions" {
+  description = "Post-deployment setup instructions"
+  value       = <<-EOT
+    
+    ========================================
+    🚀 DogfyDiet Platform Deployment Complete!
+    ========================================
+    
+    Frontend URL: http://${module.loadbalancer.load_balancer_ip}
+    Frontend Bucket: ${module.storage.frontend_bucket_name}
+    
+    To configure kubectl:
+    ${module.gke.kubectl_config}
+    
+    To deploy applications:
+    1. Update GitHub secret FRONTEND_BUCKET_NAME with: ${module.storage.frontend_bucket_name}
+    2. Update GitHub secret API_URL with: http://${module.loadbalancer.load_balancer_ip}/api
+    3. Push changes to trigger CI/CD pipeline
+    
+    To access the frontend directly via bucket:
+    ${module.storage.frontend_bucket_website_url}
+    
+  EOT
 }

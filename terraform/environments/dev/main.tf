@@ -1,4 +1,3 @@
-# terraform/environments/dev/main.tf
 terraform {
   required_version = ">= 1.5"
   
@@ -43,14 +42,12 @@ provider "google-beta" {
 # Data sources
 data "google_client_config" "default" {}
 
-# Configure Kubernetes provider
 provider "kubernetes" {
   host                   = "https://${module.gke.endpoint}"
   token                  = data.google_client_config.default.access_token
   cluster_ca_certificate = base64decode(module.gke.ca_certificate)
 }
 
-# Configure Helm provider
 provider "helm" {
   kubernetes {
     host                   = "https://${module.gke.endpoint}"
@@ -59,7 +56,6 @@ provider "helm" {
   }
 }
 
-# Local values for consistent naming and tagging
 locals {
   environment = var.environment
   project     = var.project_name
@@ -123,7 +119,50 @@ module "storage" {
   name_prefix = local.name_prefix
   environment = local.environment
   
+  # CDN configuration
+  enable_cdn      = true
+  cdn_default_ttl = 3600
+  cdn_max_ttl     = 86400
+  
   labels = local.common_labels
+}
+
+# Load Balancer Module
+module "loadbalancer" {
+  source = "../../modules/loadbalancer"
+  
+  project_id  = var.project_id
+  name_prefix = local.name_prefix
+  environment = local.environment
+  
+  # Backend configuration
+  default_backend_service = module.storage.backend_bucket_self_link
+  
+  # HTTPS configuration (disabled for dev, enable in production)
+  enable_https               = false
+  create_managed_certificate = false
+  # managed_certificate_domains = ["dogfydiet.example.com"]  # EJEMPLO
+  
+  path_matchers = [
+    {
+      name            = "main"
+      default_service = module.storage.backend_bucket_self_link
+      path_rules = [
+        {
+          paths   = ["/*"]
+          service = module.storage.backend_bucket_self_link
+        }
+      ]
+    }
+  ]
+  
+  # Cloud Armor configuration (PROD?)
+  enable_cloud_armor   = false
+  enable_rate_limiting = false
+  
+  labels = local.common_labels
+  
+  depends_on = [module.storage]
 }
 
 # Pub/Sub Module
