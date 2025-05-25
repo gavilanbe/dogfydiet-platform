@@ -9,6 +9,11 @@ resource "google_project_service" "compute" {
   disable_on_destroy = false
 }
 
+resource "google_project_service" "kms" {
+  service            = "cloudkms.googleapis.com"
+  disable_on_destroy = false
+}
+
 # GKE Cluster
 resource "google_container_cluster" "primary" {
   name     = "${var.name_prefix}-gke-cluster"

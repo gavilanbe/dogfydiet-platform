@@ -188,6 +188,7 @@ module "firestore" {
 }
 
 # IAM Module
+# IAM Module
 module "iam" {
   source = "../../modules/iam"
 
@@ -197,8 +198,12 @@ module "iam" {
   environment = local.environment
 
   gke_cluster_name = module.gke.cluster_name
+  # Disable workload identity bindings until GKE cluster is created
+  enable_workload_identity = false
 
   labels = local.common_labels
+  
+  depends_on = [module.gke]
 }
 
 # Monitoring Module

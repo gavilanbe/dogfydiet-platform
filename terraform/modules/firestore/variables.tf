@@ -23,13 +23,13 @@ variable "labels" {
 variable "database_name" {
   description = "Name of the Firestore database"
   type        = string
-  default     = "(default)"
+  default     = "firestore_db"
 }
 
 variable "firestore_location" {
   description = "Location for Firestore database"
   type        = string
-  default     = "us-central"
+  default     = "us-central1"
 }
 
 variable "database_type" {
