@@ -75,22 +75,3 @@ variable "cdn_client_ttl" {
   type        = number
   default     = 3600
 }
-
-# Load Balancer Configuration
-variable "enable_https" {
-  description = "Whether to enable HTTPS"
-  type        = bool
-  default     = false  # Set to true in production with custom domain
-}
-
-variable "custom_domain" {
-  description = "Custom domain for the frontend (required for HTTPS)"
-  type        = string
-  default     = ""
-}
-
-variable "api_backend_service" {
-  description = "Backend service for API routes"
-  type        = string
-  default     = ""
-}

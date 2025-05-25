@@ -13,42 +13,17 @@ output "frontend_bucket_self_link" {
   value       = google_storage_bucket.frontend.self_link
 }
 
-output "load_balancer_ip" {
-  description = "The IP address of the load balancer"
-  value       = google_compute_global_address.frontend.address
+output "frontend_bucket_website_url" {
+  description = "The website URL of the frontend storage bucket"
+  value       = "https://storage.googleapis.com/${google_storage_bucket.frontend.name}/index.html"
 }
 
-output "load_balancer_ip_name" {
-  description = "The name of the load balancer IP address"
-  value       = google_compute_global_address.frontend.name
+output "backend_bucket_id" {
+  description = "The ID of the backend bucket resource"
+  value       = google_compute_backend_bucket.frontend.id
 }
 
-output "frontend_url" {
-  description = "The URL to access the frontend application"
-  value       = "http://${google_compute_global_address.frontend.address}"
-}
-
-output "frontend_https_url" {
-  description = "The HTTPS URL to access the frontend application"
-  value       = var.enable_https ? "https://${google_compute_global_address.frontend.address}" : ""
-}
-
-output "custom_domain_url" {
-  description = "The custom domain URL (if configured)"
-  value       = var.custom_domain != "" ? (var.enable_https ? "https://${var.custom_domain}" : "http://${var.custom_domain}") : ""
-}
-
-output "backend_bucket_name" {
-  description = "The name of the backend bucket"
-  value       = google_compute_backend_bucket.frontend.name
-}
-
-output "url_map_name" {
-  description = "The name of the URL map"
-  value       = google_compute_url_map.frontend.name
-}
-
-output "ssl_certificate_name" {
-  description = "The name of the SSL certificate (if HTTPS enabled)"
-  value       = var.enable_https && var.custom_domain != "" ? google_compute_managed_ssl_certificate.frontend[0].name : ""
+output "backend_bucket_self_link" {
+  description = "The self-link of the backend bucket"
+  value       = google_compute_backend_bucket.frontend.self_link
 }
