@@ -58,7 +58,7 @@ logs
 *.log
 
 # Service Account Keys (security)
-*.json
+.json
 *key.json
 *credentials.json
 
