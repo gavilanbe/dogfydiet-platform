@@ -11,7 +11,7 @@ FROM base AS deps
 
 COPY package*.json ./
 
-RUN npm ci --only=production --silent && \
+RUN npm ci --only=production && \
     npm cache clean --force
 
 FROM base AS builder

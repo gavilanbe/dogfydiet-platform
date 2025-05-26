@@ -99,7 +99,7 @@ jobs:
     # 'needs: changes' is removed
     # Runs if manually dispatched to deploy frontend OR if it's a push event (filtered by workflow paths)
     if: github.event.inputs.deploy_frontend == 'true' || github.event_name == 'push'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     environment: dev
     
     steps:
