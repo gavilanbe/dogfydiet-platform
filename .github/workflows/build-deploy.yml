@@ -164,7 +164,7 @@ jobs:
 
     - name: Get GKE credentials
       run: |
-        gcloud container clusters get-credentials dogfydiet-dev-gke-cluster --region us-central1 --project ${{ env.PROJECT_ID }}
+        gcloud container clusters get-credentials dogfydiet-dev-cluster --region us-central1 --project ${{ env.PROJECT_ID }}
 
     - name: Setup Helm
       uses: azure/setup-helm@v3
