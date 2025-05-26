@@ -35,6 +35,7 @@ jobs:
       microservice-1: ${{ steps.changes.outputs.microservice-1 }}
       microservice-2: ${{ steps.changes.outputs.microservice-2 }}
       k8s: ${{ steps.changes.outputs.k8s }}
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v2
