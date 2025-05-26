@@ -13,18 +13,18 @@ output "dashboard_url" {
   value       = "https://console.cloud.google.com/monitoring/dashboards/custom/${basename(google_monitoring_dashboard.main.id)}?project=${var.project_id}"
 }
 
-output "alert_policies" {
-  description = "List of created alert policy names"
-  value = [
-    google_monitoring_alert_policy.gke_cpu_usage.display_name,
-    google_monitoring_alert_policy.gke_memory_usage.display_name,
-    google_monitoring_alert_policy.gke_node_not_ready.display_name,
-    google_monitoring_alert_policy.http_error_rate.display_name,
-    google_monitoring_alert_policy.http_latency.display_name,
-    google_monitoring_alert_policy.low_request_volume.display_name,
-    google_monitoring_alert_policy.error_logs.display_name
-  ]
-}
+# output "alert_policies" {
+#   description = "List of created alert policy names"
+#   value = [
+#     google_monitoring_alert_policy.gke_cpu_usage.display_name,
+#     google_monitoring_alert_policy.gke_memory_usage.display_name,
+#     google_monitoring_alert_policy.gke_node_not_ready.display_name,
+#     google_monitoring_alert_policy.http_error_rate.display_name,
+#     google_monitoring_alert_policy.http_latency.display_name,
+#     google_monitoring_alert_policy.low_request_volume.display_name,
+#     google_monitoring_alert_policy.error_logs.display_name
+#   ]
+# }
 
 output "log_metric_name" {
   description = "Name of the error count log metric"
