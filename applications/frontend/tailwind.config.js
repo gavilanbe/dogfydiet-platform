@@ -1,6 +1,6 @@
 // applications/frontend/tailwind.config.js
 /** @type {import('tailwindcss').Config} */
-const colors = require('tailwindcss/colors'); // Add this line
+const colors = require('tailwindcss/colors');
 
 module.exports = {
   content: [
@@ -15,10 +15,11 @@ module.exports = {
       colors: {
         'brand-pink': '#ec4899',
         'brand-purple': '#8b5cf6',
-        // Add the gray color palette
-        gray: colors.coolGray, // You can choose other grays like 'blueGray', 'trueGray', 'warmGray', 'gray' itself
-                              // For example, to use the default Tailwind gray:
-                              // gray: colors.gray,
+        pink: colors.pink,
+        purple: colors.purple,
+        gray: colors.coolGray,
+        // For the gradient in .gradient-bg from style.css
+        indigo: colors.indigo, // Added this as it's used in .gradient-bg
       }
     },
   },
