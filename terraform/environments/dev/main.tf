@@ -42,17 +42,19 @@ provider "google-beta" {
 # Data sources
 data "google_client_config" "default" {}
 
+# Conditional provider configuration
+# Only configure if cluster exists
 provider "kubernetes" {
-  host                   = "https://${module.gke.endpoint}"
-  token                  = data.google_client_config.default.access_token
-  cluster_ca_certificate = base64decode(module.gke.ca_certificate)
+  host                   = try("https://${module.gke.endpoint}", "")
+  token                  = try(data.google_client_config.default.access_token, "")
+  cluster_ca_certificate = try(base64decode(module.gke.ca_certificate), "")
 }
 
 provider "helm" {
   kubernetes {
-    host                   = "https://${module.gke.endpoint}"
-    token                  = data.google_client_config.default.access_token
-    cluster_ca_certificate = base64decode(module.gke.ca_certificate)
+    host                   = try("https://${module.gke.endpoint}", "")
+    token                  = try(data.google_client_config.default.access_token, "")
+    cluster_ca_certificate = try(base64decode(module.gke.ca_certificate), "")
   }
 }
 
@@ -141,7 +143,7 @@ module "loadbalancer" {
   # HTTPS configuration (disabled for dev, enable in production)
   enable_https               = false
   create_managed_certificate = false
-  # managed_certificate_domains = ["dogfydiet.example.com"]  # EJEMPLO
+  # managed_certificate_domains = ["dogfydiet.example.com"]
 
   path_matchers = [
     {
@@ -156,7 +158,7 @@ module "loadbalancer" {
     }
   ]
 
-  # Cloud Armor configuration (PROD?)
+  # Cloud Armor configuration (disabled for dev)
   enable_cloud_armor   = false
   enable_rate_limiting = false
 
