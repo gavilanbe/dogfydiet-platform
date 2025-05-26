@@ -1,6 +1,5 @@
 <template>
   <div id="app" class="min-h-screen bg-gradient-to-br from-pink-50 to-purple-50">
-    <!-- Header -->
     <header class="bg-white shadow-sm border-b-2 border-pink-200">
       <div class="max-w-4xl mx-auto px-4 py-6">
         <div class="flex items-center justify-between">
@@ -21,9 +20,7 @@
       </div>
     </header>
 
-    <!-- Main Content -->
     <main class="max-w-4xl mx-auto px-4 py-8">
-      <!-- Add Item Section -->
       <div class="bg-white rounded-2xl shadow-lg p-6 mb-8 border border-pink-100">
         <h2 class="text-xl font-semibold text-gray-800 mb-4 flex items-center">
           <Plus class="w-5 h-5 mr-2 text-pink-500" />
@@ -90,27 +87,23 @@
         </form>
       </div>
 
-      <!-- Items List -->
       <div class="bg-white rounded-2xl shadow-lg p-6 border border-pink-100">
         <h2 class="text-xl font-semibold text-gray-800 mb-6 flex items-center">
           <Package class="w-5 h-5 mr-2 text-purple-500" />
           Items List
         </h2>
 
-        <!-- Loading State -->
         <div v-if="isLoadingItems" class="flex items-center justify-center py-8">
           <Loader2 class="w-8 h-8 animate-spin text-pink-500" />
           <span class="ml-3 text-gray-600">Loading items...</span>
         </div>
 
-        <!-- Empty State -->
         <div v-else-if="items.length === 0" class="text-center py-12">
           <Package class="w-16 h-16 text-gray-300 mx-auto mb-4" />
           <h3 class="text-lg font-medium text-gray-500 mb-2">No items yet</h3>
           <p class="text-gray-400">Add your first item to get started!</p>
         </div>
 
-        <!-- Items Grid -->
         <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <div
             v-for="item in items"
@@ -142,7 +135,6 @@
         </div>
       </div>
 
-      <!-- Stats Section -->
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mt-8">
         <div class="bg-white rounded-xl p-4 text-center border border-pink-100">
           <div class="text-2xl font-bold text-pink-600">{{ itemCount }}</div>
@@ -163,7 +155,6 @@
       </div>
     </main>
 
-    <!-- Toast Notifications -->
     <div
       v-if="notification.show"
       class="fixed top-4 right-4 z-50 bg-white border border-gray-200 rounded-xl shadow-lg p-4 max-w-sm transform transition-all duration-300"
@@ -178,8 +169,7 @@
   </div>
 </template>
 
-<script>
-</script>
+<script setup lang="ts"> // Changed from <script> to <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import axios from 'axios'
 import {
@@ -193,93 +183,169 @@ import {
   Loader2
 } from 'lucide-vue-next'
 
-export default {
-  name: 'App',
-  components: {
-    Heart,
-    Plus,
-    Package,
-    Activity,
-    Clock,
-    CheckCircle,
-    AlertCircle,
-    Loader2
-  },
-  setup() {
-    // Reactive state
-    const items = ref([])
-    const newItem = ref({
-      name: '',
-      category: '',
-      description: ''
-    })
-    const isLoading = ref(false)
-    const isLoadingItems = ref(false)
-    const isApiHealthy = ref(true)
-    const notification = ref({
-      show: false,
-      type: 'success',
-      message: ''
-    })
+// Removed export default - it's not needed with <script setup>
+// name: 'App', // name option is not generally used with <script setup>
+// components are automatically registered when imported in <script setup>
 
-    // API configuration
-    const API_BASE_URL = process.env.VUE_APP_API_URL || 'http://localhost:3000'
+// Reactive state
+const items = ref<any[]>([]) // Added type for better TypeScript support
+const newItem = ref({
+  name: '',
+  category: '',
+  description: ''
+})
+const isLoading = ref(false)
+const isLoadingItems = ref(false)
+const isApiHealthy = ref(true)
+const notification = ref({
+  show: false,
+  type: 'success', // Can be 'success' | 'error'
+  message: ''
+})
 
-    // Computed properties
-    const itemCount = computed(() => items.value.length)
-    const categoryCount = computed(() => new Set(items.value.map(item => item.category)).size)
-    const todayCount = computed(() => {
-      const today = new Date().toDateString()
-      return items.value.filter(item => new Date(item.timestamp).toDateString() === today).length
-    })
+// API configuration
+const API_BASE_URL = process.env.VUE_APP_API_URL || 'http://localhost:3000'
 
-    // Methods
-    const showNotification = (message, type = 'success') => {
-      notification.value = { show: true, message, type }
-      setTimeout(() => {
-        notification.value.show = false
-      }, 3000)
+// Computed properties
+const itemCount = computed(() => items.value.length)
+const categoryCount = computed(() => new Set(items.value.map(item => item.category)).size)
+const todayCount = computed(() => {
+  const today = new Date().toDateString()
+  return items.value.filter(item => new Date(item.timestamp).toDateString() === today).length
+})
+
+// Methods
+const showNotification = (message: string, type: 'success' | 'error' = 'success') => {
+  notification.value = { show: true, message, type }
+  setTimeout(() => {
+    notification.value.show = false
+  }, 3000)
+}
+
+const formatDate = (timestamp: string | Date) => { // Added type for timestamp
+  return new Date(timestamp).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
+const addItem = async () => {
+  if (!newItem.value.name.trim()) return
+
+  isLoading.value = true
+  
+  try {
+    const itemData = {
+      ...newItem.value,
+      timestamp: new Date().toISOString(),
+      id: Date.now().toString() // Simple ID generation, consider a more robust UUID in production
     }
 
-    const formatDate = (timestamp) => {
-      return new Date(timestamp).toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      })
-    }
-
-    const addItem = async () => {
-      if (!newItem.value.name.trim()) return
-
-      isLoading.value = true
-      
-      try {
-        const itemData = {
-          ...newItem.value,
-          timestamp: new Date().toISOString(),
-          id: Date.now().toString()
-        }
-
+    // Simulate API call if VUE_APP_API_URL is not set or points to localhost
+    // In a real scenario, this would always be an API call.
+    if (API_BASE_URL.includes('localhost') || !process.env.VUE_APP_API_URL) {
+        console.warn("Simulating API call for addItem. Ensure your API is running and VUE_APP_API_URL is set for real requests.");
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate network delay
+         // items.value.unshift(itemData); // This was already here, ensure it's the desired behavior
+    } else {
         const response = await axios.post(`${API_BASE_URL}/api/items`, itemData, {
-          timeout: 10000,
-          headers: {
+            timeout: 10000,
+            headers: {
             'Content-Type': 'application/json'
-          }
-        })
+            }
+        });
+    }
+    
+    // Add to local state immediately for better UX (optimistic update)
+    // If your POST request returns the created item, you might prefer to use that
+    items.value.unshift(itemData);
+    
+    // Reset form
+    newItem.value = { name: '', category: '', description: '' }
+    
+    showNotification('Item added successfully! 🎉')
+    isApiHealthy.value = true
+    
+  } catch (error) {
+    console.error('Error adding item:', error)
+    let errorMessage = 'Failed to add item. Please try again.';
+    if (axios.isAxiosError(error) && error.response) {
+      errorMessage += ` (Status: ${error.response.status})`;
+    } else if (axios.isAxiosError(error) && error.request) {
+      errorMessage += ` (No response from server)`;
+    }
+    showNotification(errorMessage, 'error')
+    isApiHealthy.value = false
+  } finally {
+    isLoading.value = false
+  }
+}
 
-        // Add to local state immediately for better UX
-        items.value.unshift(itemData)
-        
-        // Reset form
-        newItem.value = { name: '', category: '', description: '' }
-        
-        showNotification('Item added successfully! 🎉')
-        isApiHealthy.value = true
-        
-      } catch (error) {
-        console.error('Error adding item:', error)
-        showNotification('Failed to add item. Please try again.', 'error')
-        isApiHealthy.value = false
-      } finally {
+const fetchItems = async () => {
+  isLoadingItems.value = true
+  try {
+    // Simulate API call if VUE_APP_API_URL is not set or points to localhost
+    if (API_BASE_URL.includes('localhost') || !process.env.VUE_APP_API_URL) {
+        console.warn("Simulating API call for fetchItems. Ensure your API is running and VUE_APP_API_URL is set for real requests.");
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate network delay
+        // items.value = []; // Example: clear items or set mock data
+    } else {
+        const response = await axios.get(`${API_BASE_URL}/api/items`, { timeout: 10000 });
+        items.value = response.data.sort((a:any, b:any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    }
+    isApiHealthy.value = true;
+  } catch (error) {
+    console.error('Error fetching items:', error)
+    showNotification('Failed to load items. API might be offline.', 'error')
+    isApiHealthy.value = false
+    items.value = [] // Clear items on error to reflect loading failure
+  } finally {
+    isLoadingItems.value = false
+  }
+}
+
+const healthCheck = async () => {
+  try {
+    // Simulate API call if VUE_APP_API_URL is not set or points to localhost
+    if (API_BASE_URL.includes('localhost') || !process.env.VUE_APP_API_URL) {
+        console.warn("Simulating API call for healthCheck. Ensure your API is running and VUE_APP_API_URL is set for real requests.");
+        await new Promise(resolve => setTimeout(resolve, 500)); // Simulate network delay
+        isApiHealthy.value = true; // Assume healthy for simulation
+    } else {
+        await axios.get(`${API_BASE_URL}/api/health`, { timeout: 5000 });
+        isApiHealthy.value = true;
+    }
+  } catch (error) {
+    console.warn('API health check failed:', error)
+    isApiHealthy.value = false
+    showNotification('API is currently unreachable.', 'error')
+  }
+}
+
+// Lifecycle hooks
+onMounted(() => {
+  fetchItems()
+  // Periodically check API health
+  setInterval(healthCheck, 60000) // Check every 60 seconds
+  healthCheck(); // Initial check
+})
+
+// You don't need to return anything from setup when using <script setup>
+</script>
+
+<style>
+/* Global styles (if any) - these will be processed by PostCSS and Tailwind */
+body {
+  font-family: 'Inter', sans-serif;
+}
+
+/* For line-clamp utility if not directly supported or for older Tailwind versions */
+.line-clamp-2 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+</style>
