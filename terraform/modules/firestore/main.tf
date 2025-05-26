@@ -11,9 +11,9 @@ resource "google_project_service" "appengine" {
 
 # App Engine application (required for Firestore)
 resource "google_app_engine_application" "default" {
-  project       = var.project_id
-  location_id   = var.app_engine_location
- # database_type = "CLOUD_FIRESTORE"
+  project     = var.project_id
+  location_id = var.app_engine_location
+  # database_type = "CLOUD_FIRESTORE"
 
   depends_on = [
     google_project_service.appengine,
@@ -113,7 +113,7 @@ resource "google_monitoring_alert_policy" "firestore_read_ops" {
     display_name = "High read operations"
 
     condition_threshold {
-      filter = "resource.type=\"firestore.googleapis.com/Database\" AND resource.labels.database_id=\"${google_firestore_database.main.name}\" AND metric.type=\"firestore.googleapis.com/document/read_ops_count\""
+      filter          = "resource.type=\"firestore.googleapis.com/Database\" AND resource.labels.database_id=\"${google_firestore_database.main.name}\" AND metric.type=\"firestore.googleapis.com/document/read_ops_count\""
       duration        = "300s"
       comparison      = "COMPARISON_GT"
       threshold_value = var.read_ops_threshold
@@ -147,7 +147,7 @@ resource "google_monitoring_alert_policy" "firestore_write_ops" {
     display_name = "High write operations"
 
     condition_threshold {
-      filter = "resource.type=\"firestore.googleapis.com/Database\" AND resource.labels.database_id=\"${google_firestore_database.main.name}\" AND metric.type=\"firestore.googleapis.com/document/write_ops_count\""
+      filter          = "resource.type=\"firestore.googleapis.com/Database\" AND resource.labels.database_id=\"${google_firestore_database.main.name}\" AND metric.type=\"firestore.googleapis.com/document/write_ops_count\""
       duration        = "300s"
       comparison      = "COMPARISON_GT"
       threshold_value = var.write_ops_threshold

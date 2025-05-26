@@ -56,7 +56,7 @@ resource "google_container_cluster" "primary" {
   # Private cluster configuration
   private_cluster_config {
     enable_private_nodes    = true
-    enable_private_endpoint = false  # Set to true for full private, false allows public API access
+    enable_private_endpoint = false # Set to true for full private, false allows public API access
     master_ipv4_cidr_block  = var.master_ipv4_cidr_block
   }
 
@@ -69,7 +69,7 @@ resource "google_container_cluster" "primary" {
   # Master authorized networks - who can access the Kubernetes API
   master_authorized_networks_config {
     cidr_blocks {
-      cidr_block   = "0.0.0.0/0"  # WARNING: Open to all. Restrict in production!
+      cidr_block   = "0.0.0.0/0" # WARNING: Open to all. Restrict in production!
       display_name = "All networks"
     }
   }

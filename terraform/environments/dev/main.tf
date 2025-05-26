@@ -203,7 +203,7 @@ module "iam" {
   enable_workload_identity = false
 
   labels = local.common_labels
-  
+
   depends_on = [module.gke]
 }
 
