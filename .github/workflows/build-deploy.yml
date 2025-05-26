@@ -29,7 +29,7 @@ env:
 jobs:
   # Job to check what changed
   changes:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       frontend: ${{ steps.changes.outputs.frontend }}
       microservice-1: ${{ steps.changes.outputs.microservice-1 }}
