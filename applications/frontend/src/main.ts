@@ -4,13 +4,12 @@ import './style.css'
 
 const app = createApp(App)
 
-// Global error handler
+// Optional: Global error handler (from your original main.ts)
 app.config.errorHandler = (err, instance, info) => {
   console.error('Global error:', err, info)
-  
   // In production, you might want to send this to a logging service
   if (process.env.NODE_ENV === 'production') {
-    // sendToLoggingService(err, info)
+    // Example: sendToLoggingService(err, instance, info);
   }
 }
 

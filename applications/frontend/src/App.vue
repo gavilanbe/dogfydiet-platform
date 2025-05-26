@@ -1,351 +1,151 @@
 <template>
-  <div id="app" class="min-h-screen bg-gradient-to-br from-pink-50 to-purple-50">
-    <header class="bg-white shadow-sm border-b-2 border-pink-200">
-      <div class="max-w-4xl mx-auto px-4 py-6">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center space-x-3">
-            <div class="w-10 h-10 bg-gradient-to-r from-pink-400 to-purple-400 rounded-full flex items-center justify-center">
-              <Heart class="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h1 class="text-2xl font-bold text-gray-800">DogfyDiet</h1>
-              <p class="text-sm text-gray-600">Healthy treats for happy pups! 🐕</p>
-            </div>
-          </div>
-          <div class="flex items-center space-x-2 text-sm text-gray-500">
-            <Activity class="w-4 h-4" />
-            <span>{{ itemCount }} items added</span>
-          </div>
-        </div>
-      </div>
-    </header>
+  <div id="app-container">
+    <h1>My DogfyDiet Items</h1>
 
-    <main class="max-w-4xl mx-auto px-4 py-8">
-      <div class="bg-white rounded-2xl shadow-lg p-6 mb-8 border border-pink-100">
-        <h2 class="text-xl font-semibold text-gray-800 mb-4 flex items-center">
-          <Plus class="w-5 h-5 mr-2 text-pink-500" />
-          Add New Item
-        </h2>
-        
-        <form @submit.prevent="addItem" class="space-y-4">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label for="itemName" class="block text-sm font-medium text-gray-700 mb-2">
-                Item Name
-              </label>
-              <input
-                id="itemName"
-                v-model="newItem.name"
-                type="text"
-                required
-                placeholder="e.g., Premium Dog Treats"
-                class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all duration-200"
-              />
-            </div>
-            
-            <div>
-              <label for="itemCategory" class="block text-sm font-medium text-gray-700 mb-2">
-                Category
-              </label>
-              <select
-                id="itemCategory"
-                v-model="newItem.category"
-                required
-                class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all duration-200"
-              >
-                <option value="">Select a category</option>
-                <option value="treats">Treats</option>
-                <option value="food">Food</option>
-                <option value="supplements">Supplements</option>
-                <option value="toys">Toys</option>
-              </select>
-            </div>
-          </div>
-          
-          <div>
-            <label for="itemDescription" class="block text-sm font-medium text-gray-700 mb-2">
-              Description
-            </label>
-            <textarea
-              id="itemDescription"
-              v-model="newItem.description"
-              rows="3"
-              placeholder="Describe this item..."
-              class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all duration-200 resize-none"
-            ></textarea>
-          </div>
-          
-          <button
-            type="submit"
-            :disabled="isLoading"
-            class="w-full bg-gradient-to-r from-pink-500 to-purple-500 text-white font-medium py-3 px-6 rounded-xl hover:from-pink-600 hover:to-purple-600 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
-          >
-            <Loader2 v-if="isLoading" class="w-5 h-5 mr-2 animate-spin" />
-            <Plus v-else class="w-5 h-5 mr-2" />
-            {{ isLoading ? 'Adding Item...' : 'Add Item' }}
-          </button>
-        </form>
-      </div>
+    <form @submit.prevent="addItem" class="form-container">
+      <input
+        type="text"
+        v-model="newItemName"
+        placeholder="Enter item name (e.g., Favorite Toy)"
+        class="input-field"
+        required
+      />
+      <button type="submit" class="btn-primary" :disabled="isLoading">
+        {{ isLoading ? 'Adding...' : 'Add Item' }}
+      </button>
+    </form>
 
-      <div class="bg-white rounded-2xl shadow-lg p-6 border border-pink-100">
-        <h2 class="text-xl font-semibold text-gray-800 mb-6 flex items-center">
-          <Package class="w-5 h-5 mr-2 text-purple-500" />
-          Items List
-        </h2>
-
-        <div v-if="isLoadingItems" class="flex items-center justify-center py-8">
-          <Loader2 class="w-8 h-8 animate-spin text-pink-500" />
-          <span class="ml-3 text-gray-600">Loading items...</span>
-        </div>
-
-        <div v-else-if="items.length === 0" class="text-center py-12">
-          <Package class="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h3 class="text-lg font-medium text-gray-500 mb-2">No items yet</h3>
-          <p class="text-gray-400">Add your first item to get started!</p>
-        </div>
-
-        <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div
-            v-for="item in items"
-            :key="item.id"
-            class="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-4 hover:shadow-md transition-all duration-200 border border-gray-200"
-          >
-            <div class="flex items-start justify-between mb-3">
-              <h3 class="font-semibold text-gray-800 truncate mr-2">{{ item.name }}</h3>
-              <span class="px-2 py-1 text-xs font-medium bg-pink-100 text-pink-800 rounded-full whitespace-nowrap">
-                {{ item.category }}
-              </span>
-            </div>
-            
-            <p v-if="item.description" class="text-sm text-gray-600 mb-3 line-clamp-2">
-              {{ item.description }}
-            </p>
-            
-            <div class="flex items-center justify-between text-xs text-gray-500">
-              <span class="flex items-center">
-                <Clock class="w-3 h-3 mr-1" />
-                {{ formatDate(item.timestamp) }}
-              </span>
-              <span class="flex items-center">
-                <CheckCircle class="w-3 h-3 mr-1 text-green-500" />
-                Added
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mt-8">
-        <div class="bg-white rounded-xl p-4 text-center border border-pink-100">
-          <div class="text-2xl font-bold text-pink-600">{{ itemCount }}</div>
-          <div class="text-sm text-gray-600">Total Items</div>
-        </div>
-        <div class="bg-white rounded-xl p-4 text-center border border-purple-100">
-          <div class="text-2xl font-bold text-purple-600">{{ categoryCount }}</div>
-          <div class="text-sm text-gray-600">Categories</div>
-        </div>
-        <div class="bg-white rounded-xl p-4 text-center border border-blue-100">
-          <div class="text-2xl font-bold text-blue-600">{{ todayCount }}</div>
-          <div class="text-sm text-gray-600">Added Today</div>
-        </div>
-        <div class="bg-white rounded-xl p-4 text-center border border-green-100">
-          <div class="text-2xl font-bold text-green-600">{{ isApiHealthy ? 'Online' : 'Offline' }}</div>
-          <div class="text-sm text-gray-600">API Status</div>
-        </div>
-      </div>
-    </main>
-
-    <div
-      v-if="notification.show"
-      class="fixed top-4 right-4 z-50 bg-white border border-gray-200 rounded-xl shadow-lg p-4 max-w-sm transform transition-all duration-300"
-      :class="notification.type === 'success' ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'"
-    >
-      <div class="flex items-center">
-        <CheckCircle v-if="notification.type === 'success'" class="w-5 h-5 text-green-600 mr-3" />
-        <AlertCircle v-else class="w-5 h-5 text-red-600 mr-3" />
-        <span class="text-sm font-medium text-gray-800">{{ notification.message }}</span>
-      </div>
+    <div v-if="message" :class="['message', messageType]">
+      {{ message }}
     </div>
+
+    <div v-if="items.length === 0 && !isLoading && !initialLoadError && !message" class="message">
+      No items added yet. Add one above!
+    </div>
+
+    <ul class="item-list">
+      <li v-for="item in items" :key="item.id || item.name">
+        {{ item.name }}
+        <span v-if="item.status" :style="{ color: item.status === 'pending' ? 'orange' : 'green' }">
+          ({{ item.status }})
+        </span>
+      </li>
+    </ul>
   </div>
 </template>
 
-<script setup lang="ts"> // Changed from <script> to <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import axios from 'axios'
-import {
-  Heart,
-  Plus,
-  Package,
-  Activity,
-  Clock,
-  CheckCircle,
-  AlertCircle,
-  Loader2
-} from 'lucide-vue-next'
+<script lang="ts">
+import { defineComponent, ref, onMounted } from 'vue';
+import axios from 'axios';
 
-// Removed export default - it's not needed with <script setup>
-// name: 'App', // name option is not generally used with <script setup>
-// components are automatically registered when imported in <script setup>
-
-// Reactive state
-const items = ref<any[]>([]) // Added type for better TypeScript support
-const newItem = ref({
-  name: '',
-  category: '',
-  description: ''
-})
-const isLoading = ref(false)
-const isLoadingItems = ref(false)
-const isApiHealthy = ref(true)
-const notification = ref({
-  show: false,
-  type: 'success', // Can be 'success' | 'error'
-  message: ''
-})
-
-// API configuration
-const API_BASE_URL = process.env.VUE_APP_API_URL || 'http://localhost:3000'
-
-// Computed properties
-const itemCount = computed(() => items.value.length)
-const categoryCount = computed(() => new Set(items.value.map(item => item.category)).size)
-const todayCount = computed(() => {
-  const today = new Date().toDateString()
-  return items.value.filter(item => new Date(item.timestamp).toDateString() === today).length
-})
-
-// Methods
-const showNotification = (message: string, type: 'success' | 'error' = 'success') => {
-  notification.value = { show: true, message, type }
-  setTimeout(() => {
-    notification.value.show = false
-  }, 3000)
+interface Item {
+  id?: string | number; // Optional ID, if your backend returns one
+  name: string;
+  status?: 'pending' | 'confirmed'; // Example status
 }
 
-const formatDate = (timestamp: string | Date) => { // Added type for timestamp
-  return new Date(timestamp).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  })
-}
+type MessageType = 'success' | 'error' | 'loading' | ''; // Allow '' for messageType ref
 
-const addItem = async () => {
-  if (!newItem.value.name.trim()) return
+export default defineComponent({
+  name: 'App',
+  setup() {
+    const newItemName = ref('');
+    const items = ref<Item[]>([]);
+    const isLoading = ref(false);
+    const message = ref('');
+    const messageType = ref<MessageType>(''); // Use the MessageType type
+    const initialLoadError = ref(false);
 
-  isLoading.value = true
-  
-  try {
-    const itemData = {
-      ...newItem.value,
-      timestamp: new Date().toISOString(),
-      id: Date.now().toString() // Simple ID generation, consider a more robust UUID in production
-    }
+    const apiUrl = process.env.VUE_APP_API_URL || '/api/microservice1';
 
-    // Simulate API call if VUE_APP_API_URL is not set or points to localhost
-    // In a real scenario, this would always be an API call.
-    if (API_BASE_URL.includes('localhost') || !process.env.VUE_APP_API_URL) {
-        console.warn("Simulating API call for addItem. Ensure your API is running and VUE_APP_API_URL is set for real requests.");
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate network delay
-         // items.value.unshift(itemData); // This was already here, ensure it's the desired behavior
-    } else {
-        const response = await axios.post(`${API_BASE_URL}/api/items`, itemData, {
-            timeout: 10000,
-            headers: {
-            'Content-Type': 'application/json'
-            }
-        });
-    }
-    
-    // Add to local state immediately for better UX (optimistic update)
-    // If your POST request returns the created item, you might prefer to use that
-    items.value.unshift(itemData);
-    
-    // Reset form
-    newItem.value = { name: '', category: '', description: '' }
-    
-    showNotification('Item added successfully! 🎉')
-    isApiHealthy.value = true
-    
-  } catch (error) {
-    console.error('Error adding item:', error)
-    let errorMessage = 'Failed to add item. Please try again.';
-    if (axios.isAxiosError(error) && error.response) {
-      errorMessage += ` (Status: ${error.response.status})`;
-    } else if (axios.isAxiosError(error) && error.request) {
-      errorMessage += ` (No response from server)`;
-    }
-    showNotification(errorMessage, 'error')
-    isApiHealthy.value = false
-  } finally {
-    isLoading.value = false
-  }
-}
+    const clearMessage = () => {
+      message.value = '';
+      messageType.value = '';
+    };
 
-const fetchItems = async () => {
-  isLoadingItems.value = true
-  try {
-    // Simulate API call if VUE_APP_API_URL is not set or points to localhost
-    if (API_BASE_URL.includes('localhost') || !process.env.VUE_APP_API_URL) {
-        console.warn("Simulating API call for fetchItems. Ensure your API is running and VUE_APP_API_URL is set for real requests.");
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate network delay
-        // items.value = []; // Example: clear items or set mock data
-    } else {
-        const response = await axios.get(`${API_BASE_URL}/api/items`, { timeout: 10000 });
-        items.value = response.data.sort((a:any, b:any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-    }
-    isApiHealthy.value = true;
-  } catch (error) {
-    console.error('Error fetching items:', error)
-    showNotification('Failed to load items. API might be offline.', 'error')
-    isApiHealthy.value = false
-    items.value = [] // Clear items on error to reflect loading failure
-  } finally {
-    isLoadingItems.value = false
-  }
-}
+    const showMessage = (text: string, type: 'success' | 'error' | 'loading', duration: number = 3000) => {
+      message.value = text;
+      messageType.value = type; // Type is always one of the valid options here
+      if (type !== 'loading') {
+        setTimeout(clearMessage, duration);
+      }
+    };
 
-const healthCheck = async () => {
-  try {
-    // Simulate API call if VUE_APP_API_URL is not set or points to localhost
-    if (API_BASE_URL.includes('localhost') || !process.env.VUE_APP_API_URL) {
-        console.warn("Simulating API call for healthCheck. Ensure your API is running and VUE_APP_API_URL is set for real requests.");
-        await new Promise(resolve => setTimeout(resolve, 500)); // Simulate network delay
-        isApiHealthy.value = true; // Assume healthy for simulation
-    } else {
-        await axios.get(`${API_BASE_URL}/api/health`, { timeout: 5000 });
-        isApiHealthy.value = true;
-    }
-  } catch (error) {
-    console.warn('API health check failed:', error)
-    isApiHealthy.value = false
-    showNotification('API is currently unreachable.', 'error')
-  }
-}
+    const fetchItems = async () => {
+      isLoading.value = true;
+      initialLoadError.value = false;
+      showMessage('Loading items...', 'loading');
+      try {
+        // const response = await axios.get(`${apiUrl}/items`);
+        // items.value = response.data;
+        await new Promise(resolve => setTimeout(resolve, 500));
+        if (messageType.value === 'loading') { // Clear loading message only if it's still the active one
+          clearMessage();
+        }
+      } catch (error) {
+        console.error('Error fetching items:', error);
+        showMessage('Failed to load items from the server.', 'error');
+        initialLoadError.value = true;
+      } finally {
+        isLoading.value = false;
+      }
+    };
 
-// Lifecycle hooks
-onMounted(() => {
-  fetchItems()
-  // Periodically check API health
-  setInterval(healthCheck, 60000) // Check every 60 seconds
-  healthCheck(); // Initial check
-})
+    const addItem = async () => {
+      if (!newItemName.value.trim()) {
+        showMessage('Item name cannot be empty.', 'error');
+        return;
+      }
 
-// You don't need to return anything from setup when using <script setup>
+      isLoading.value = true;
+      showMessage('Adding item...', 'loading');
+
+      const itemToAdd: Item = {
+        name: newItemName.value,
+        status: 'pending'
+      };
+
+      items.value.push(itemToAdd);
+      const currentItemIndex = items.value.length - 1;
+
+      try {
+        const response = await axios.post(`${apiUrl}/items`, { name: newItemName.value });
+        
+        if (response.data && items.value[currentItemIndex]) {
+            items.value[currentItemIndex] = { ...items.value[currentItemIndex], ...response.data, status: 'confirmed' };
+        } else if (items.value[currentItemIndex]) {
+            items.value[currentItemIndex].status = 'confirmed';
+        }
+        
+        showMessage(`Item "${newItemName.value}" added successfully!`, 'success');
+        newItemName.value = '';
+      } catch (error) {
+        console.error('Error adding item:', error);
+        showMessage(`Failed to add item "${itemToAdd.name}". Please try again.`, 'error');
+        items.value.splice(currentItemIndex, 1);
+      } finally {
+        isLoading.value = false;
+        if (messageType.value === 'loading') { // Clear loading message if not overridden by success/error
+           clearMessage();
+        }
+      }
+    };
+
+    onMounted(() => {
+      // fetchItems(); 
+      console.log("VUE_APP_API_URL used by App.vue:", process.env.VUE_APP_API_URL);
+      console.log("Effective API base URL for App.vue:", apiUrl);
+    });
+
+    return {
+      newItemName,
+      items,
+      isLoading,
+      addItem,
+      message,
+      messageType,
+      initialLoadError
+    };
+  },
+});
 </script>
-
-<style>
-/* Global styles (if any) - these will be processed by PostCSS and Tailwind */
-body {
-  font-family: 'Inter', sans-serif;
-}
-
-/* For line-clamp utility if not directly supported or for older Tailwind versions */
-.line-clamp-2 {
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-}
-</style>
