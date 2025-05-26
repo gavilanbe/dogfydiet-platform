@@ -90,7 +90,7 @@ module.exports = defineConfig({
       postcss: {
         postcssOptions: {
           plugins: [
-            require('tailwindcss'),
+            require('@tailwindcss/postcss'), // Changed from require('tailwindcss')
             require('autoprefixer')
           ]
         }
