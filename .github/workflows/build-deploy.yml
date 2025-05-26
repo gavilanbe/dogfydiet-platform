@@ -162,6 +162,10 @@ jobs:
     - name: Set up Cloud SDK
       uses: google-github-actions/setup-gcloud@v2
 
+    - name: Install gke-gcloud-auth-plugin
+      run: |
+        gcloud components install gke-gcloud-auth-plugin --quiet
+
     - name: Get GKE credentials
       run: |
         gcloud container clusters get-credentials dogfydiet-dev-cluster --region us-central1 --project ${{ env.PROJECT_ID }}
