@@ -37,6 +37,12 @@ resource "google_project_iam_member" "gke_nodes_monitoring_viewer" {
   member  = "serviceAccount:${google_service_account.gke_nodes.email}"
 }
 
+resource "google_project_iam_member" "gke_nodes_artifact_registry_reader" {
+  project = var.project_id
+  role    = "roles/artifactregistry.reader"
+  member  = "serviceAccount:${google_service_account.gke_nodes.email}"
+}
+
 # GKE Cluster - Private configuration
 resource "google_container_cluster" "primary" {
   project  = var.project_id
