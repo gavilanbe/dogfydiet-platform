@@ -137,9 +137,38 @@ jobs:
     - name: Deploy to Cloud Storage
       run: |
         cd applications/frontend
+        echo "--- Contents of dist/ folder before rsync ---"
+        ls -R dist/
+        echo "--- Starting rsync to GCS bucket: ${{ secrets.FRONTEND_BUCKET_NAME }} ---"
         gsutil -m rsync -r -d dist/ gs://${{ secrets.FRONTEND_BUCKET_NAME }}/
+        
+        echo "--- Setting Cache-Control for HTML files ---"
         gsutil -m setmeta -h "Cache-Control:public, max-age=3600" gs://${{ secrets.FRONTEND_BUCKET_NAME }}/**/*.html
-        gsutil -m setmeta -h "Cache-Control:public, max-age=31536000" gs://${{ secrets.FRONTEND_BUCKET_NAME }}/**/*.{js,css,png,jpg,jpeg,gif,ico,svg}
+        
+        echo "--- Setting Cache-Control for JS and CSS files ---"
+        gsutil -m setmeta -h "Cache-Control:public, max-age=31536000" gs://${{ secrets.FRONTEND_BUCKET_NAME }}/**/*.js gs://${{ secrets.FRONTEND_BUCKET_NAME }}/**/*.css
+
+        echo "--- Attempting to set Cache-Control for specific optional files (will not fail if not found) ---"
+        # For favicon.ico at the root of the bucket (if it exists in dist/)
+        # The -f flag tells gsutil to continue on error (like "No URLs matched")
+        if [ -f dist/favicon.ico ]; then
+          echo "Setting metadata for favicon.ico"
+          gsutil -f -m setmeta -h "Cache-Control:public, max-age=86400" gs://${{ secrets.FRONTEND_BUCKET_NAME }}/favicon.ico
+        else
+          echo "favicon.ico not found in dist/, skipping metadata."
+        fi
+        
+        # For other image types, if they exist in an 'img' subfolder or similar.
+        # This is an example, adjust the path 'img/' if your images are elsewhere in 'dist/'
+        # Use a loop and check for existence to avoid "No URLs matched" causing script failure.
+        # This example assumes images might be in dist/img/
+        IMAGE_EXTENSIONS=("png" "jpg" "jpeg" "gif" "svg")
+        for ext in "${IMAGE_EXTENSIONS[@]}"; do
+          # Check if any files with this extension exist in the bucket (optional check, gsutil -f handles it)
+          # We'll rely on gsutil -f to not fail the step if no files match
+          echo "Attempting to set metadata for *.$ext files"
+          gsutil -f -m setmeta -h "Cache-Control:public, max-age=31536000" gs://${{ secrets.FRONTEND_BUCKET_NAME }}/**/*.$ext
+        done
 
   # Deploy microservices to GKE
   deploy-microservices:
