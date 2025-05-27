@@ -3,7 +3,7 @@ kind: Service
 metadata:
   name: {{ include "microservice-1.fullname" . }}
   annotations:
-    cloud.google.com/neg: '{"exposed_ports": {"http":{}}}' # 'http' refers to the port name below
+    cloud.google.com/neg: '{"exposed_ports": {"80":{}}}'
     {{- if .Values.backendConfig.enabled }}
     cloud.google.com/backend-config: '{"ports": {"http":"{{ include "microservice-1.fullname" . }}-backendconfig"}}'
     {{- end }}

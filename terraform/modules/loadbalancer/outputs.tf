@@ -63,10 +63,12 @@ output "cloud_armor_policy_id" {
   value       = var.enable_cloud_armor ? google_compute_security_policy.main[0].id : null
 }
 
-output "backend_service_id" {
-  description = "The ID of the backend service (if created)"
-  value       = var.create_backend_service ? google_compute_backend_service.main[0].id : null
-}
+# output "backend_service_id" {
+#   description = "The ID of the backend service (if created)"
+#   value       = var.create_backend_service ? google_compute_backend_service.main[0].id : null
+# }
+
+
 
 output "load_balancer_url" {
   description = "The URL to access the load balancer"
@@ -76,4 +78,20 @@ output "load_balancer_url" {
 output "load_balancer_https_url" {
   description = "The HTTPS URL to access the load balancer (if enabled)"
   value       = var.enable_https ? "https://${google_compute_global_address.main.address}" : null
+}
+
+
+output "gke_ms1_backend_service_id" {
+  description = "The ID of the backend service for Microservice 1 GKE NEG"
+  value       = var.enable_gke_backend ? google_compute_backend_service.gke_ms1_backend[0].id : null
+}
+
+output "gke_ms1_backend_service_self_link" {
+  description = "The self-link of the backend service for Microservice 1 GKE NEG"
+  value       = var.enable_gke_backend ? google_compute_backend_service.gke_ms1_backend[0].self_link : null
+}
+
+output "gke_ms1_health_check_id" {
+  description = "The ID of the health check for Microservice 1 GKE backend"
+  value       = var.enable_gke_backend ? google_compute_health_check.gke_ms1_health_check[0].id : null
 }

@@ -90,6 +90,33 @@ module "vpc" {
   labels = local.common_labels
 }
 
+##### NEW FIREWALL RULE #####
+# Firewall rule to allow health checks from Google Cloud Load Balancer to GKE Nodes
+resource "google_compute_firewall" "allow_lb_health_checks_to_gke_nodes" {
+  project = var.project_id
+  name    = "${local.name_prefix}-allow-lb-hc-gke" # e.g., dogfydiet-dev-allow-lb-hc-gke
+  network = module.vpc.network_name               # Uses the network created by the vpc module
+
+  description = "Allow health checks from GCP Load Balancer to GKE worker nodes"
+
+  allow {
+    protocol = "tcp"
+    ports    = ["3000"]
+  }
+
+  # Google Cloud health checker IP ranges
+  source_ranges = ["130.211.0.0/22", "35.191.0.0/16"]
+
+  # Target GKE nodes using the tag applied by your GKE module.
+  target_tags = ["${local.name_prefix}-gke-node"] # e.g., dogfydiet-dev-gke-node
+
+  priority = 1000 # Standard priority
+
+  depends_on = [module.vpc] # Ensure VPC is created first
+}
+
+
+
 # GKE Module
 module "gke" {
   source = "../../modules/gke"
@@ -138,25 +165,25 @@ module "loadbalancer" {
   environment = local.environment
 
   # Backend configuration
-  default_backend_service = module.storage.backend_bucket_self_link
+  default_backend_service = module.storage.backend_bucket_self_link # This is for GCS (frontend)
 
-  # HTTPS configuration (disabled for dev, enable in production)
-  enable_https               = false
-  create_managed_certificate = false
-  # managed_certificate_domains = ["dogfydiet.example.com"]
+  # HTTPS configuration
+  enable_https               = true
+  create_managed_certificate = true
+  ssl_certificates = [module.loadbalancer.ssl_certificate_self_link]
+  managed_certificate_domains = ["nahueldog.duckdns.org"]
 
-  path_matchers = [
-    {
-      name            = "main"
-      default_service = module.storage.backend_bucket_self_link
-      path_rules = [
-        {
-          paths   = ["/*"]
-          service = module.storage.backend_bucket_self_link
-        }
-      ]
-    }
-  ]
+  # --- START: Pass GKE backend variables ---
+  enable_gke_backend            = true                                                                                          # Enable the GKE backend
+  gke_neg_name = "k8s1-98d6217d-default-microservice-1-80-247119ef"
+  gke_neg_zone = "us-central1-a"
+  gke_backend_service_port_name = "http"                                                                                        # Matches the port name in your microservice-1 k8s Service
+  gke_health_check_port         = 3000                                                                                          # Port for microservice-1 health check
+  gke_health_check_request_path = "/health"                                                                                     # Path for microservice-1 health check
+  # --- END: Pass GKE backend variables ---
+
+
+
 
   # Cloud Armor configuration (disabled for dev)
   enable_cloud_armor   = false
@@ -164,7 +191,7 @@ module "loadbalancer" {
 
   labels = local.common_labels
 
-  depends_on = [module.storage]
+  depends_on = [module.storage, module.gke] # Added module.gke dependency
 }
 
 # Pub/Sub Module

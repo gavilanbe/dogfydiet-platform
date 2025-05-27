@@ -7,9 +7,78 @@ resource "google_compute_global_address" "main" {
   labels = var.labels
 }
 
+# --- START: Health Check for GKE Backend (microservice-1) ---
+resource "google_compute_health_check" "gke_ms1_health_check" {
+  count = var.enable_gke_backend ? 1 : 0
+
+  name                = "${var.name_prefix}-ms1-hc"
+  description         = "Health check for Microservice 1"
+  check_interval_sec  = 15 # From your backendconfig.yaml
+  timeout_sec         = 5  # From your backendconfig.yaml
+  healthy_threshold   = 2  # From your backendconfig.yaml
+  unhealthy_threshold = 2  # From your backendconfig.yaml
+
+  http_health_check {
+    port_specification = "USE_SERVING_PORT" # NEG will provide the port
+    request_path       = var.gke_health_check_request_path
+  }
+}
+# --- END: Health Check for GKE Backend (microservice-1) ---
+
+# --- START: Backend Service for GKE NEG (microservice-1) ---
+data "google_compute_network_endpoint_group" "gke_ms1_neg" {
+  count = var.enable_gke_backend ? 1 : 0
+
+  name    = var.gke_neg_name
+  zone    = var.gke_neg_zone # Make sure this is the zone of your GKE cluster/nodes
+  project = var.project_id
+}
+
+resource "google_compute_backend_service" "gke_ms1_backend" {
+  count = var.enable_gke_backend ? 1 : 0
+
+  name                  = "${var.name_prefix}-ms1-backend"
+  description           = "Backend service for Microservice 1 (GKE NEG)"
+  protocol              = "HTTP"                            # Assuming microservice-1 serves HTTP
+  port_name             = var.gke_backend_service_port_name # Should match the service port name in k8s service for ms1
+  timeout_sec           = 30
+  load_balancing_scheme = "EXTERNAL_MANAGED" # For Global HTTP(S) LB with NEGs
+  enable_cdn            = false              # Usually not needed for API backends
+
+  backend {
+    group                 = data.google_compute_network_endpoint_group.gke_ms1_neg[0].self_link
+    balancing_mode        = "RATE" # Good for HTTP services
+    max_rate_per_endpoint = 100    # Adjust as needed
+  }
+
+  health_checks = [google_compute_health_check.gke_ms1_health_check[0].self_link]
+
+  log_config {
+    enable      = var.enable_logging
+    sample_rate = var.log_sample_rate
+  }
+
+  # If you have a BackendConfig for this service in k8s, its settings (like IAP, CDN)
+  # are applied by GKE. For Terraform managed backend services with NEGs,
+  # you often configure these directly here or leave them to GKE if using `BackendConfig`
+  # with the service.
+  # If using BackendConfig for IAP, timeout, etc. from GKE, ensure it's correctly associated
+  # with the K8s service. For health checks, it's safer to also define it in TF for the backend_service.
+
+  # security_policy = var.enable_cloud_armor ? google_compute_security_policy.main[0].id : null
+  # dynamic "iap" {
+  #   for_each = var.iap_oauth2_client_id != "" ? [1] : []
+  #   content {
+  #     oauth2_client_id     = var.iap_oauth2_client_id
+  #     oauth2_client_secret = var.iap_oauth2_client_secret
+  #   }
+  # }
+}
+# --- END: Backend Service for GKE NEG (microservice-1) ---
+
 resource "google_compute_url_map" "main" {
-  name            = "${var.name_prefix}-lb-urlmap"
-  description     = "URL map for load balancer"
+  name        = "${var.name_prefix}-lb-urlmap"
+  description = "URL map for load balancer"
   default_service = var.default_backend_service
 
   dynamic "host_rule" {
@@ -20,22 +89,25 @@ resource "google_compute_url_map" "main" {
     }
   }
 
-  dynamic "path_matcher" {
-    for_each = var.path_matchers
-    content {
-      name            = path_matcher.value.name
-      default_service = path_matcher.value.default_service
+  path_matcher {
+    name            = "allpaths"
+    default_service = var.default_backend_service # GCS bucket
 
-      dynamic "path_rule" {
-        for_each = path_matcher.value.path_rules
-        content {
-          paths   = path_rule.value.paths
-          service = path_rule.value.service
-        }
+    dynamic "path_rule" {
+      for_each = var.enable_gke_backend ? [1] : []
+      content {
+        paths   = ["/api/*"]
+        service = google_compute_backend_service.gke_ms1_backend[0].self_link
       }
+    }
+
+    path_rule {
+      paths   = ["/*"]
+      service = var.default_backend_service
     }
   }
 }
+
 
 # HTTP(S) Load Balancer - HTTPS proxy
 resource "google_compute_target_https_proxy" "main" {
@@ -180,27 +252,27 @@ resource "google_compute_security_policy" "main" {
   }
 }
 
-resource "google_compute_backend_service" "main" {
-  count = var.create_backend_service ? 1 : 0
+# resource "google_compute_backend_service" "main" {
+#   count = var.create_backend_service ? 1 : 0
 
-  name        = "${var.name_prefix}-lb-backend-service"
-  description = "Backend service for load balancer"
+#   name        = "${var.name_prefix}-lb-backend-service"
+#   description = "Backend service for load balancer"
 
-  protocol    = var.backend_protocol
-  port_name   = var.backend_port_name
-  timeout_sec = var.backend_timeout
+#   protocol    = var.backend_protocol
+#   port_name   = var.backend_port_name
+#   timeout_sec = var.backend_timeout
 
-  health_checks = var.health_checks
+#   health_checks = var.health_checks
 
-  security_policy = var.enable_cloud_armor ? google_compute_security_policy.main[0].id : null
+#   security_policy = var.enable_cloud_armor ? google_compute_security_policy.main[0].id : null
 
-  log_config {
-    enable      = var.enable_logging
-    sample_rate = var.log_sample_rate
-  }
+#   log_config {
+#     enable      = var.enable_logging
+#     sample_rate = var.log_sample_rate
+#   }
 
-  iap {
-    oauth2_client_id     = var.iap_oauth2_client_id
-    oauth2_client_secret = var.iap_oauth2_client_secret
-  }
-}
+#   iap {
+#     oauth2_client_id     = var.iap_oauth2_client_id
+#     oauth2_client_secret = var.iap_oauth2_client_secret
+#   }
+# }

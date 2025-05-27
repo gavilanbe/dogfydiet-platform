@@ -109,3 +109,12 @@ variable "gke_min_node_count" {
   type        = number
   default     = 1
 }
+
+# In ./environments/dev/variables.tf
+# ... (other variables)
+
+variable "k8s_namespace_for_ms1_helm_chart" {
+  description = "Kubernetes namespace where microservice-1 is deployed (used for NEG naming)."
+  type        = string
+  default     = "default" # Or whatever namespace you use in your Helm chart for microservice-1
+}

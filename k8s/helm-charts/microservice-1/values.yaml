@@ -38,7 +38,7 @@ securityContext:
 service:
   type: ClusterIP
   port: 80
-  targetPort: 3000
+  #targetPort: 3000
   protocol: TCP
   targetPort: http # Referencing the named port of the container
   protocol: TCP
