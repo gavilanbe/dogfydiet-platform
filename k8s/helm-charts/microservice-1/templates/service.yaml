@@ -2,13 +2,19 @@ apiVersion: v1
 kind: Service
 metadata:
   name: {{ include "microservice-1.fullname" . }}
+  annotations:
+    cloud.google.com/neg: '{"exposed_ports": {"http":{}}}' # 'http' refers to the port name below
+    {{- if .Values.backendConfig.enabled }}
+    cloud.google.com/backend-config: '{"ports": {"http":"{{ include "microservice-1.fullname" . }}-backendconfig"}}'
+    {{- end }}
   labels:
     {{- include "microservice-1.labels" . | nindent 4 }}
 spec:
   type: {{ .Values.service.type }}
   ports:
     - port: {{ .Values.service.port }}
-      targetPort: {{ .Values.service.targetPort }}
+
+      targetPort: http # This should match the name of the port in your deployment's container spec
       protocol: {{ .Values.service.protocol }}
       name: http
   selector:

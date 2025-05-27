@@ -1,0 +1,17 @@
+{{- if .Values.backendConfig.enabled }}
+apiVersion: cloud.google.com/v1
+kind: BackendConfig
+metadata:
+  name: {{ include "microservice-1.fullname" . }}-backendconfig
+  labels:
+    {{- include "microservice-1.labels" . | nindent 4 }}
+spec:
+  healthCheck:
+    checkIntervalSec: {{ .Values.backendConfig.healthCheck.checkIntervalSec | default 15 }}
+    timeoutSec: {{ .Values.backendConfig.healthCheck.timeoutSec | default 5 }}
+    healthyThreshold: {{ .Values.backendConfig.healthCheck.healthyThreshold | default 2 }}
+    unhealthyThreshold: {{ .Values.backendConfig.healthCheck.unhealthyThreshold | default 2 }}
+    type: HTTP
+    port: {{ .Values.image.containerPort | default 3000 }} # Port your container listens on
+    requestPath: {{ .Values.backendConfig.healthCheck.requestPath | default "/health" }}
+{{- end }}
