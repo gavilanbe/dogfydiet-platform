@@ -13,73 +13,100 @@ The platform follows a microservices pattern with a decoupled frontend, asynchro
 * **Scalability & Orchestration**: Backend microservices are containerized with Docker and orchestrated by Google Kubernetes Engine (GKE).
 * **Global Delivery**: Frontend assets are served from Google Cloud Storage (GCS) via an HTTP(S) Load Balancer with Cloud CDN.
 
-## System Flow and Architecture Diagram
-graph TB
-    subgraph "Google Cloud"
-        CA[Cloud Armor]
-        LB["HTTP(S) Load Balancer (L7)"]
-        subgraph "Frontend Hosting"
-            GCS["GCS Bucket (Vue SPA)"]
-            CDN["Cloud CDN"]
-        end
+## System Flow Diagram Architecture Diagram
+sequenceDiagram
+    actor User
+    participant Browser as Vue.js SPA (Frontend)
+    participant LB as GCP HTTP(S) Load Balancer
+    participant MS1 as Microservice 1 (GKE - API/Publisher)
+    participant PubSub as Google Pub/Sub
+    participant MS2 as Microservice 2 (GKE - Subscriber/Processor)
+    participant Firestore as Google Firestore
 
-        subgraph "GKE Cluster (us-central1)"
-            NGINX[NGINX Ingress Controller]
-            subgraph "Node Pool"
-                MS1[Microservice 1 (API Gateway)]
-                MS2[Microservice 2 (Processor)]
-            end
-            HPA1["HPA MS1"]
-            HPA2["HPA MS2"]
-        end
-
-        subgraph "Pub/Sub"
-            TOPIC["items-topic"]
-            SUB["items-subscription"]
-            DLT["dead-letter-topic"]
-        end
-
-        subgraph "Firestore"
-            DB["Firestore (Native Mode)"]
-        end
-
-        subgraph "VPC & Infra"
-            VPC["Custom VPC"]
-            NAT["Cloud NAT"]
-            FW["Firewall Rules"]
-        end
-
-        subgraph "Operations"
-            CM[Cloud Monitoring]
-            CL[Cloud Logging]
-        end
-
+    User->>Browser: Interacts (e.g., adds item)
+    Browser->>LB: POST /api/items (Item Data)
+    LB->>MS1: Forward request
+    MS1->>MS1: Validate Data
+    alt Valid Data
+        MS1->>PubSub: Publish Event (Item Data)
+        PubSub-->>MS1: Acknowledge Publish
+        MS1-->>LB: HTTP 201 Created (Success)
+        LB-->>Browser: HTTP 201 Created
+        Browser->>User: Show Success Message
+    else Invalid Data
+        MS1-->>LB: HTTP 400 Bad Request (Validation Error)
+        LB-->>Browser: HTTP 400 Bad Request
+        Browser->>User: Show Error Message
     end
 
-    User[User Browser] -->|HTTPS| CA --> LB
+    PubSub->>MS2: Deliver Event (Item Data)
+    MS2->>MS2: Process Event
+    MS2->>Firestore: Store/Update Item Data
+    Firestore-->>MS2: Acknowledge Write
+    MS2-->>PubSub: Acknowledge Message (ack)
 
-    LB -->|/api/*| NGINX --> MS1
-    LB -->|other| GCS --> CDN
+## High-Level Component Architecture Diagram
 
-    MS1 -->|Event| TOPIC
-    TOPIC -->|Sub| MS2
-    MS2 --> DB
+graph TD
+    subgraph User Facing
+        U[End User Browser]
+    end
 
-    MS1 -.-> CM
-    MS2 -.-> CM
-    MS1 -.-> CL
-    MS2 -.-> CL
+    subgraph GCP Network & Edge
+        LB[GCP HTTP(S) Load Balancer]
+        CDN[Cloud CDN]
+    end
 
-    MS1 -.->|Scale| HPA1
-    MS2 -.->|Scale| HPA2
+    subgraph GCP Services
+        subgraph GCS [Google Cloud Storage]
+            Frontend[Vue.js SPA Files]
+        end
 
-    MS2 -->|DLQ| DLT
+        subgraph GKE [Google Kubernetes Engine Cluster]
+            direction LR
+            MS1[Microservice 1: API/Publisher]
+            MS2[Microservice 2: Subscriber/Processor]
+        end
 
-    VPC -.-> MS1
-    VPC -.-> MS2
-    NAT -.-> MS1
-    NAT -.-> MS2
+        PubSub[Google Pub/Sub Topic/Subscription]
+        FirestoreDB[Google Firestore Database]
+        ArtReg[Artifact Registry: Docker Images]
+        SecMan[Secret Manager]
+        CloudMon[Cloud Monitoring & Logging]
+    end
 
+    U --> LB
+
+    LB -- HTTPS --> CDN
+    CDN -- Cached Content --> Frontend
+    LB -- Default Route --> Frontend
+
+    LB -- /api/* Route --> MS1
+
+    MS1 -- Publishes Event --> PubSub
+    PubSub -- Delivers Event --> MS2
+    MS2 -- Writes Data --> FirestoreDB
+
+    MS1 -. Uses .-> CloudMon
+    MS2 -. Uses .-> CloudMon
+    GKE -. Sends Metrics/Logs .-> CloudMon
+
+    %% CI/CD (Conceptual - not a runtime component)
+    subgraph CICD [CI/CD Pipeline e.g., GitHub Actions/CircleCI]
+        direction LR
+        SourceCode[Git Repository]
+        Build[Build & Test]
+        PushImage[Push to ArtReg]
+        DeployTerraform[Terraform Apply]
+        DeployHelm[Helm Deploy]
+    end
+    SourceCode --> Build
+    Build --> PushImage
+    Build --> DeployTerraform
+    PushImage --> DeployHelm
+    DeployTerraform -. Provisions .-> GKE
+    DeployTerraform -. Provisions .-> PubSub
+    DeployTerraform -. Provisions .-> FirestoreDB
 
 ## Component Breakdown
 
