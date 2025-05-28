@@ -52,56 +52,56 @@ sequenceDiagram
 ```mermaid
 graph TD
     subgraph User Facing
-        U[End User Browser]
+        U["End User Browser"]
     end
 
-    subgraph GCP Network & Edge
-        LB[GCP HTTP(S) Load Balancer]
-        CDN[Cloud CDN]
+    subgraph "GCP Network & Edge"
+        LB["GCP HTTP(S) Load Balancer"]
+        CDN["Cloud CDN"]
     end
 
-    subgraph GCP Services
+    subgraph "GCP Services"
         subgraph GCS [Google Cloud Storage]
-            Frontend[Vue.js SPA Files]
+            Frontend["Vue.js SPA Files"]
         end
 
         subgraph GKE [Google Kubernetes Engine Cluster]
             direction LR
-            MS1[Microservice 1: API/Publisher]
-            MS2[Microservice 2: Subscriber/Processor]
+            MS1["Microservice 1: API/Publisher"]
+            MS2["Microservice 2: Subscriber/Processor"]
         end
 
-        PubSub[Google Pub/Sub Topic/Subscription]
-        FirestoreDB[Google Firestore Database]
-        ArtReg[Artifact Registry: Docker Images]
-        SecMan[Secret Manager]
-        CloudMon[Cloud Monitoring & Logging]
+        PubSub["Google Pub/Sub Topic/Subscription"]
+        FirestoreDB["Google Firestore Database"]
+        ArtReg["Artifact Registry: Docker Images"]
+        SecMan["Secret Manager"]
+        CloudMon["Cloud Monitoring & Logging"]
     end
 
     U --> LB
 
-    LB -- HTTPS --> CDN
-    CDN -- Cached Content --> Frontend
-    LB -- Default Route --> Frontend
+    LB -- "HTTPS" --> CDN
+    CDN -- "Cached Content" --> Frontend
+    LB -- "Default Route" --> Frontend
 
-    LB -- /api/* Route --> MS1
+    LB -- "/api/* Route" --> MS1
 
-    MS1 -- Publishes Event --> PubSub
-    PubSub -- Delivers Event --> MS2
-    MS2 -- Writes Data --> FirestoreDB
+    MS1 -- "Publishes Event" --> PubSub
+    PubSub -- "Delivers Event" --> MS2
+    MS2 -- "Writes Data" --> FirestoreDB
 
-    MS1 -. Uses .-> CloudMon
-    MS2 -. Uses .-> CloudMon
-    GKE -. Sends Metrics/Logs .-> CloudMon
+    MS1 -. "Uses" .-> CloudMon
+    MS2 -. "Uses" .-> CloudMon
+    GKE -. "Sends Metrics/Logs" .-> CloudMon
 
     %% CI/CD (Conceptual - not a runtime component)
-    subgraph CICD [CI/CD Pipeline e.g., GitHub Actions/CircleCI]
+    subgraph "CI/CD Pipeline"
         direction LR
-        SourceCode[Git Repository]
-        Build[Build & Test]
-        PushImage[Push to ArtReg]
-        DeployTerraform[Terraform Apply]
-        DeployHelm[Helm Deploy]
+        SourceCode["Git Repository"]
+        Build["Build & Test"]
+        PushImage["Push to ArtReg"]
+        DeployTerraform["Terraform Apply"]
+        DeployHelm["Helm Deploy"]
     end
     SourceCode --> Build
     Build --> PushImage
@@ -110,6 +110,7 @@ graph TD
     DeployTerraform -. Provisions .-> GKE
     DeployTerraform -. Provisions .-> PubSub
     DeployTerraform -. Provisions .-> FirestoreDB
+
 ```
 ## Component Breakdown
 
