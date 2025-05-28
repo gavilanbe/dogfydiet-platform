@@ -1,0 +1,145 @@
+name: 'Minimal Terraform CI/CD'
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'terraform/**'
+      - '.github/workflows/minimal-terraform-ci.yml' # Matches the filename
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - 'terraform/**'
+      - '.github/workflows/minimal-terraform-ci.yml'
+
+env:
+  TF_VERSION: '1.5.7'
+  TF_WORKING_DIR: terraform/environments/dev # Define working directory
+
+permissions:
+  contents: read
+  pull-requests: write # Needed to comment on PRs
+  id-token: write      # Needed for GCP authentication
+
+jobs:
+  terraform:
+    name: 'Terraform Actions'
+    runs-on: ubuntu-latest
+    environment: dev
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: ${{ env.TF_VERSION }}
+
+    - name: Terraform Format Check
+      id: fmt
+      run: terraform fmt -check -recursive -diff
+      working-directory: ${{ env.TF_WORKING_DIR }}
+      continue-on-error: true # Allow workflow to proceed to report status
+
+    - name: Initialize Terraform for Local Validation
+      run: terraform init -backend=false
+      working-directory: ${{ env.TF_WORKING_DIR }}
+
+    - name: Validate Terraform
+      id: validate
+      run: terraform validate
+      working-directory: ${{ env.TF_WORKING_DIR }}
+      continue-on-error: true # Allow workflow to proceed to report status
+
+    - name: Authenticate to Google Cloud (only for Plan/Apply)
+      if: (github.event_name == 'pull_request' && steps.fmt.outcome == 'success' && steps.validate.outcome == 'success') || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+      uses: google-github-actions/auth@v2
+      with:
+        credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+    - name: Initialize Terraform (full backend for Plan/Apply)
+      if: (github.event_name == 'pull_request' && steps.fmt.outcome == 'success' && steps.validate.outcome == 'success') || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+      run: terraform init
+      working-directory: ${{ env.TF_WORKING_DIR }}
+
+    # Plan for Pull Requests
+    - name: Terraform Plan (Pull Request)
+      if: github.event_name == 'pull_request' && steps.fmt.outcome == 'success' && steps.validate.outcome == 'success'
+      id: plan_pr
+      run: |
+        terraform plan -detailed-exitcode -no-color -out=tfplan > ${{ env.TF_WORKING_DIR }}/plan_output.txt || echo "exit_code=$?" >> $GITHUB_OUTPUT
+        echo "exit_code=${exit_code:-0}" >> $GITHUB_OUTPUT
+      working-directory: ${{ env.TF_WORKING_DIR }}
+      env:
+        TF_VAR_notification_email: ${{ secrets.NOTIFICATION_EMAIL }}
+      continue-on-error: true # Allow script to process output even on plan failure/changes
+
+    - name: Comment Plan Status on PR
+      if: github.event_name == 'pull_request' && (steps.fmt.outcome != 'success' || steps.validate.outcome != 'success' || steps.plan_pr.outcome != 'success')
+      uses: actions/github-script@v7
+      with:
+        script: |
+          let body = 'Terraform CI Results:\n';
+          if ('${{ steps.fmt.outcome }}' !== 'success') {
+            body += '❌ **Format Check Failed**. Please run `terraform fmt -recursive`.\n';
+          }
+          if ('${{ steps.validate.outcome }}' !== 'success') {
+            body += '❌ **Validation Failed**. Check workflow logs.\n';
+          }
+          if ('${{ steps.plan_pr.outcome }}' !== 'success' && '${{ steps.plan_pr.outputs.exit_code }}' === '1') {
+            body += '❌ **Terraform Plan Failed**. Review logs for errors.\n';
+          } else if ('${{ steps.plan_pr.outputs.exit_code }}' === '2') {
+            body += '📝 **Terraform Plan Generated with Changes**. Review the plan details in workflow logs/artifacts.\n';
+          } else if ('${{ steps.plan_pr.outputs.exit_code }}' === '0') {
+            body += '✅ **Terraform Plan Generated: No Changes**.\n';
+          }
+
+          github.rest.issues.createComment({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.issue.number,
+            body: body
+          });
+
+          // Optionally fail the workflow if critical steps failed
+          if ('${{ steps.fmt.outcome }}' !== 'success' || '${{ steps.validate.outcome }}' !== 'success' || ('${{ steps.plan_pr.outcome }}' !== 'success' && '${{ steps.plan_pr.outputs.exit_code }}' === '1')) {
+             core.setFailed('Critical Terraform step failed.');
+          }
+    
+    - name: Upload Plan Artifact (Pull Request)
+      if: github.event_name == 'pull_request' && steps.plan_pr.outputs.exit_code == '2'
+      uses: actions/upload-artifact@v4
+      with:
+        name: terraform-plan-pr
+        path: |
+          ${{ env.TF_WORKING_DIR }}/tfplan
+          ${{ env.TF_WORKING_DIR }}/plan_output.txt
+        retention-days: 3
+
+    # Apply for Pushes to Main
+    - name: Terraform Plan (Main Branch before Apply)
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.fmt.outcome == 'success' && steps.validate.outcome == 'success'
+      id: plan_main
+      run: terraform plan -out=tfplan
+      working-directory: ${{ env.TF_WORKING_DIR }}
+      env:
+        TF_VAR_notification_email: ${{ secrets.NOTIFICATION_EMAIL }}
+
+    - name: Terraform Apply (Main Branch)
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.fmt.outcome == 'success' && steps.validate.outcome == 'success' && steps.plan_main.outcome == 'success'
+      run: terraform apply -auto-approve tfplan
+      working-directory: ${{ env.TF_WORKING_DIR }}
+
+    - name: Terraform Output (Main Branch)
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.fmt.outcome == 'success' && steps.validate.outcome == 'success'
+      run: terraform output > ${{ env.TF_WORKING_DIR }}/terraform_outputs.txt
+      working-directory: ${{ env.TF_WORKING_DIR }}
+
+    - name: Upload Outputs Artifact (Main Branch)
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      uses: actions/upload-artifact@v4
+      with:
+        name: terraform-outputs-main
+        path: ${{ env.TF_WORKING_DIR }}/terraform_outputs.txt
+        retention-days: 90
