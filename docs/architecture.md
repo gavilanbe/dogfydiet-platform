@@ -50,66 +50,76 @@ sequenceDiagram
 
 ## High-Level Component Architecture Diagram
 ```mermaid
-graph TD
-    subgraph User Facing
-        U["End User Browser"]
-    end
+graph TB
+    subgraph "Google Cloud Project (dogfydiet-platform)"
+        %% Edge Security & Load Balancing
+        LB["🌐 Application Load Balancer (L7)"]
+        GCS["🗄️ Cloud Storage (Frontend + CDN via LB)"]
 
-    subgraph "GCP Network & Edge"
-        LB["GCP HTTP(S) Load Balancer"]
-        CDN["Cloud CDN"]
-    end
-
-    subgraph "GCP Services"
-        subgraph GCS [Google Cloud Storage]
-            Frontend["Vue.js SPA Files"]
+        %% GKE Compute & Microservices
+        subgraph "⚙️ GKE Regional Cluster"
+            GKE_Service["K8s Service Endpoint (NEG)"]
+            subgraph "Node Pool(s)"
+                MS1_Pods["🧩 Microservice 1 Pods (API/Pub)"]
+                MS2_Pods["🧩 Microservice 2 Pods (Sub/DB)"]
+            end
+            HPA["⚖️ Horizontal Pod Autoscaler"]
         end
 
-        subgraph GKE [Google Kubernetes Engine Cluster]
-            direction LR
-            MS1["Microservice 1: API/Publisher"]
-            MS2["Microservice 2: Subscriber/Processor"]
+        %% Data, Messaging & Supporting Services
+        PubSub["📨 Google Pub/Sub"]
+        FirestoreDB["📄 Firestore Database"]
+        SM["🔑 Secret Manager"]
+        ArtReg["📦 Artifact Registry"]
+        
+        subgraph "🛠️ Operations"
+            Monitoring["📊 Cloud Monitoring"]
+            Logging["📝 Cloud Logging"]
         end
-
-        PubSub["Google Pub/Sub Topic/Subscription"]
-        FirestoreDB["Google Firestore Database"]
-        ArtReg["Artifact Registry: Docker Images"]
-        SecMan["Secret Manager"]
-        CloudMon["Cloud Monitoring & Logging"]
     end
 
-    U --> LB
+    %% External Users & CI/CD
+    Users["👤 Users"]
+    CICD["🔄 CI/CD Pipeline"]
 
-    LB -- "HTTPS" --> CDN
-    CDN -- "Cached Content" --> Frontend
-    LB -- "Default Route" --> Frontend
+    %% --- Flow & Interactions ---
 
-    LB -- "/api/* Route" --> MS1
+    %% User Request Flow
+    Users -- "HTTPS" --> LB;
+    LB -- "Static Assets (*)" --> GCS;
+    LB -- "API Calls (/api/*)" --> GKE_Service;
+    
+    %% GKE Internal & Scaling
+    GKE_Service --> MS1_Pods;
+    HPA -.->|Scales Pods| MS1_Pods;
+    HPA -.->|Scales Pods| MS2_Pods;
 
-    MS1 -- "Publishes Event" --> PubSub
-    PubSub -- "Delivers Event" --> MS2
-    MS2 -- "Writes Data" --> FirestoreDB
+    %% Backend Microservice Workflow
+    MS1_Pods -- "Events" --> PubSub;
+    PubSub -- "Events" --> MS2_Pods;
+    MS2_Pods -- "Data I/O" --> FirestoreDB;
 
-    MS1 -. "Uses" .-> CloudMon
-    MS2 -. "Uses" .-> CloudMon
-    GKE -. "Sends Metrics/Logs" .-> CloudMon
+    %% Dependencies on Supporting Services
+    MS1_Pods & MS2_Pods -. "Secrets" .-> SM;
+    MS1_Pods & MS2_Pods -. "Container Images" .-> ArtReg; 
+    %% Operations - Telemetry (Simplified)
+    MS1_Pods & MS2_Pods -. "Logs & Metrics" .-> Monitoring;
+    MS1_Pods & MS2_Pods -. "Logs" .-> Logging;
+    %% Other services (LB, GCS, PubSub, Firestore) also report to Monitoring/Logging
 
-    %% CI/CD (Conceptual - not a runtime component)
-    subgraph "CI/CD Pipeline"
-        direction LR
-        SourceCode["Git Repository"]
-        Build["Build & Test"]
-        PushImage["Push to ArtReg"]
-        DeployTerraform["Terraform Apply"]
-        DeployHelm["Helm Deploy"]
-    end
-    SourceCode --> Build
-    Build --> PushImage
-    Build --> DeployTerraform
-    PushImage --> DeployHelm
-    DeployTerraform -. Provisions .-> GKE
-    DeployTerraform -. Provisions .-> PubSub
-    DeployTerraform -. Provisions .-> FirestoreDB
+    %% CI/CD Actions
+    CICD -- "Pushes Images" --> ArtReg;
+    CICD -- "Deploys & Provisions To" --> GCP_Project; 
+    %% --- Optional Styling (closer to your example's simplicity) ---
+    classDef default fill:#fff,stroke:#555,stroke-width:1.5px,color:black;
+    classDef gcpSubsystem fill:#f5faff,stroke:#4285F4,stroke-width:2px;
+    classDef k8sInternal fill:#e8f5e9,stroke:#34A853,stroke-width:1.5px;
+    classDef external fill:#fdf6e3,stroke:#fbbc05,stroke-width:1.5px;
+    
+    class Users external;
+    class CICD external;
+    class LB,GCS,GKE_Service,PubSub,FirestoreDB,SM,ArtReg,Monitoring,Logging default;
+    
 
 ```
 ## Component Breakdown
