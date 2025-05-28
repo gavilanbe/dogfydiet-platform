@@ -14,6 +14,7 @@ The platform follows a microservices pattern with a decoupled frontend, asynchro
 * **Global Delivery**: Frontend assets are served from Google Cloud Storage (GCS) via an HTTP(S) Load Balancer with Cloud CDN.
 
 ## System Flow Diagram Architecture Diagram
+```mermaid
 sequenceDiagram
     actor User
     participant Browser as Vue.js SPA (Frontend)
@@ -44,9 +45,9 @@ sequenceDiagram
     MS2->>Firestore: Store/Update Item Data
     Firestore-->>MS2: Acknowledge Write
     MS2-->>PubSub: Acknowledge Message (ack)
-
+```
 ## High-Level Component Architecture Diagram
-
+```mermaid
 graph TD
     subgraph User Facing
         U[End User Browser]
@@ -107,7 +108,7 @@ graph TD
     DeployTerraform -. Provisions .-> GKE
     DeployTerraform -. Provisions .-> PubSub
     DeployTerraform -. Provisions .-> FirestoreDB
-
+```
 ## Component Breakdown
 
 ### 1. Networking (VPC)
