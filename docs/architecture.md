@@ -173,4 +173,4 @@ graph TB
     * Processes incoming messages (events). 
     * Stores or updates data in Firestore. 
 
-*(Refer to `docs/security_practices.md` and `docs/monitoring_observability.md` for details on IAM, Security, and Monitoring components.)*
+*(Refer to `docs/security_practices.md` and `docs/monitoring_observability.md` for details on IAM and Security components.)*
