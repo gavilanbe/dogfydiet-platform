@@ -3,7 +3,7 @@ name: 'Build and Deploy Applications'
 on:
   push:
     branches: [ "main" ]
-    paths: # These path filters will now be the primary gate for push triggers
+    paths: 
       - 'applications/**'
       - 'k8s/**'
       - '.github/workflows/build-deploy.yml'
@@ -30,7 +30,7 @@ jobs:
   # Build and push Docker images
   build-microservice-1:
     # 'needs: changes' is removed
-    # Runs if manually dispatched to deploy microservices OR if it's a push event (filtered by workflow paths)
+    
     if: github.event.inputs.deploy_microservices == 'true' || github.event_name == 'push'
     runs-on: ubuntu-latest # Changed from ubuntu-24.04 in original changes job, ensure consistency or use ubuntu-latest
     environment: dev
@@ -175,7 +175,7 @@ jobs:
   deploy-microservices:
     needs: [build-microservice-1, build-microservice-2] # Depends on the build jobs
     # This condition ensures it runs if either build job succeeds.
-    # It will only run if the preceding build jobs were triggered and at least one succeeded.
+    
     if: always() && (needs.build-microservice-1.result == 'success' || needs.build-microservice-2.result == 'success')
     runs-on: ubuntu-latest
     environment: dev

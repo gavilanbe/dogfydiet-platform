@@ -95,41 +95,41 @@ resource "google_monitoring_alert_policy" "gke_memory_usage" {
   }
 }
 
-# GKE Pod Restart Alert
-resource "google_monitoring_alert_policy" "gke_pod_restarts" {
-  display_name = "${var.name_prefix} GKE Pod Restart Alert"
-  combiner     = "OR"
-  enabled      = true
+# # GKE Pod Restart Alert
+# resource "google_monitoring_alert_policy" "gke_pod_restarts" {
+#   display_name = "${var.name_prefix} GKE Pod Restart Alert"
+#   combiner     = "OR"
+#   enabled      = true
 
-  documentation {
-    content   = "Alert when GKE pods are restarting frequently"
-    mime_type = "text/markdown"
-  }
+#   documentation {
+#     content   = "Alert when GKE pods are restarting frequently"
+#     mime_type = "text/markdown"
+#   }
 
-  conditions {
-    display_name = "Pod restart rate is high"
+#   conditions {
+#     display_name = "Pod restart rate is high"
 
-    condition_threshold {
-      filter          = "resource.type=\"k8s_pod\" AND resource.labels.cluster_name=\"${var.gke_cluster_name}\" AND metric.type=\"kubernetes.io/pod/restart_count\""
-      duration        = "300s"
-      comparison      = "COMPARISON_GT"
-      threshold_value = 5
+#     condition_threshold {
+#       filter          = "resource.type=\"k8s_pod\" AND resource.labels.cluster_name=\"${var.gke_cluster_name}\" AND metric.type=\"kubernetes.io/pod/restart_count\""
+#       duration        = "300s"
+#       comparison      = "COMPARISON_GT"
+#       threshold_value = 5
 
-      aggregations {
-        alignment_period     = "300s"
-        per_series_aligner   = "ALIGN_RATE"
-        cross_series_reducer = "REDUCE_SUM"
-        group_by_fields      = ["resource.labels.pod_name"]
-      }
-    }
-  }
+#       aggregations {
+#         alignment_period     = "300s"
+#         per_series_aligner   = "ALIGN_RATE"
+#         cross_series_reducer = "REDUCE_SUM"
+#         group_by_fields      = ["resource.labels.pod_name"]
+#       }
+#     }
+#   }
 
-  notification_channels = [google_monitoring_notification_channel.email.name]
+#   notification_channels = [google_monitoring_notification_channel.email.name]
 
-  alert_strategy {
-    auto_close = "1800s"
-  }
-}
+#   alert_strategy {
+#     auto_close = "1800s"
+#   }
+# }
 
 # Application Monitoring Alerts
 
@@ -203,40 +203,40 @@ resource "google_monitoring_alert_policy" "http_latency" {
   }
 }
 
-# Business Metrics Alert - Low Pod Count
-resource "google_monitoring_alert_policy" "low_pod_count" {
-  display_name = "${var.name_prefix} Low Pod Count"
-  combiner     = "OR"
-  enabled      = true
+## Business Metrics Alert - Low Pod Count
+# resource "google_monitoring_alert_policy" "low_pod_count" {
+#   display_name = "${var.name_prefix} Low Pod Count"
+#   combiner     = "OR"
+#   enabled      = true
 
-  documentation {
-    content   = "Alert when pod count is too low"
-    mime_type = "text/markdown"
-  }
+#   documentation {
+#     content   = "Alert when pod count is too low"
+#     mime_type = "text/markdown"
+#   }
 
-  conditions {
-    display_name = "Pod count < 2"
+#   conditions {
+#     display_name = "Pod count < 2"
 
-    condition_threshold {
-      filter          = "resource.type=\"k8s_pod\" AND resource.labels.cluster_name=\"${var.gke_cluster_name}\" AND metric.type=\"kubernetes.io/pod/uptime\""
-      duration        = "300s"
-      comparison      = "COMPARISON_LT"
-      threshold_value = 2
+#     condition_threshold {
+#       filter          = "resource.type=\"k8s_pod\" AND resource.labels.cluster_name=\"${var.gke_cluster_name}\" AND metric.type=\"kubernetes.io/pod/uptime\""
+#       duration        = "300s"
+#       comparison      = "COMPARISON_LT"
+#       threshold_value = 2
 
-      aggregations {
-        alignment_period     = "300s"
-        per_series_aligner   = "ALIGN_MEAN"
-        cross_series_reducer = "REDUCE_COUNT"
-      }
-    }
-  }
+#       aggregations {
+#         alignment_period     = "300s"
+#         per_series_aligner   = "ALIGN_MEAN"
+#         cross_series_reducer = "REDUCE_COUNT"
+#       }
+#     }
+#   }
 
-  notification_channels = [google_monitoring_notification_channel.email.name]
+#   notification_channels = [google_monitoring_notification_channel.email.name]
 
-  alert_strategy {
-    auto_close = "1800s"
-  }
-}
+#   alert_strategy {
+#     auto_close = "1800s"
+#   }
+# }
 
 # Error Log Count Metric
 resource "google_logging_metric" "error_count" {

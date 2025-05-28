@@ -9,7 +9,7 @@ sources:
   - https://github.com/your-username/dogfydiet-platform
 maintainers:
   - name: DogfyDiet Platform Team
-    email: team@dogfydiet.com
+    email: nahuel@gavilanbe.io
 keywords:
   - microservice
   - subscriber

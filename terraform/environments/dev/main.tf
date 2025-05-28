@@ -95,7 +95,7 @@ module "vpc" {
 resource "google_compute_firewall" "allow_lb_health_checks_to_gke_nodes" {
   project = var.project_id
   name    = "${local.name_prefix}-allow-lb-hc-gke" # e.g., dogfydiet-dev-allow-lb-hc-gke
-  network = module.vpc.network_name               # Uses the network created by the vpc module
+  network = module.vpc.network_name                # Uses the network created by the vpc module
 
   description = "Allow health checks from GCP Load Balancer to GKE worker nodes"
 
@@ -168,21 +168,26 @@ module "loadbalancer" {
   default_backend_service = module.storage.backend_bucket_self_link # This is for GCS (frontend)
 
   # HTTPS configuration
-  enable_https               = true
-  create_managed_certificate = true
-  ssl_certificates = [module.loadbalancer.ssl_certificate_self_link]
+  enable_https                = true
+  create_managed_certificate  = true
+  ssl_certificates            = [module.loadbalancer.ssl_certificate_self_link]
   managed_certificate_domains = ["nahueldog.duckdns.org"]
 
   # --- START: Pass GKE backend variables ---
-  enable_gke_backend            = true                                                                                          # Enable the GKE backend
-  gke_neg_name = "k8s1-98d6217d-default-microservice-1-80-247119ef"
-  gke_neg_zone = "us-central1-a"
-  gke_backend_service_port_name = "http"                                                                                        # Matches the port name in your microservice-1 k8s Service
-  gke_health_check_port         = 3000                                                                                          # Port for microservice-1 health check
-  gke_health_check_request_path = "/health"                                                                                     # Path for microservice-1 health check
+  enable_gke_backend            = true # Enable the GKE backend
+  gke_neg_name                  = "k8s1-98d6217d-default-microservice-1-80-247119ef"
+  gke_neg_zone                  = "us-central1-c"
+  gke_backend_service_port_name = "http"    # Matches the port name in your microservice-1 k8s Service
+  gke_health_check_port         = 3000      # Port for microservice-1 health check
+  gke_health_check_request_path = "/health" # Path for microservice-1 health check
   # --- END: Pass GKE backend variables ---
 
-
+  host_rules = [
+    {
+      hosts        = ["nahueldog.duckdns.org"]
+      path_matcher = "path-matcher-1" # Ensure this matches the name in the module
+    }
+  ]
 
 
   # Cloud Armor configuration (disabled for dev)
@@ -227,7 +232,7 @@ module "iam" {
 
   gke_cluster_name = module.gke.cluster_name
   # Disable workload identity bindings until GKE cluster is created
-  enable_workload_identity = false
+  enable_workload_identity = true
 
   labels = local.common_labels
 

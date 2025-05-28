@@ -7,7 +7,7 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-# Configuration
+# Config
 PROJECT_ID="${GCP_PROJECT_ID:-nahuelgabe-test}"
 REGION="${GCP_REGION:-us-central1}"
 TERRAFORM_STATE_BUCKET="${TERRAFORM_STATE_BUCKET:-${PROJECT_ID}-terraform-state}"
@@ -76,7 +76,7 @@ else
     echo -e "${GREEN}✅ Terraform state bucket already exists${NC}"
 fi
 
-# Create a service account for GitHub Actions CI/CD
+# Create a service account for primary GitHub Actions CI/CD
 echo -e "\n${YELLOW}Creating CI/CD service account...${NC}"
 SA_NAME="dogfydiet-github-actions"
 SA_EMAIL="${SA_NAME}@${PROJECT_ID}.iam.gserviceaccount.com"

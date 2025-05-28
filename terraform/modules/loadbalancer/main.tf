@@ -75,39 +75,41 @@ resource "google_compute_backend_service" "gke_ms1_backend" {
   # }
 }
 # --- END: Backend Service for GKE NEG (microservice-1) ---
-
 resource "google_compute_url_map" "main" {
-  name        = "${var.name_prefix}-lb-urlmap"
-  description = "URL map for load balancer"
-  default_service = var.default_backend_service
+  name            = "${var.name_prefix}-lb-urlmap"
+  description     = "URL map for load balancer"
+  default_service = var.default_backend_service // Default for the URL Map if no host rule matches
 
   dynamic "host_rule" {
-    for_each = var.host_rules
+    for_each = var.host_rules // This will be populated by the change in environments/dev/main.tf
     content {
       hosts        = host_rule.value.hosts
-      path_matcher = host_rule.value.path_matcher
+      path_matcher = host_rule.value.path_matcher // This should be "path-matcher-1"
     }
   }
 
+  // This path_matcher is referenced by the host_rule.
+  // Its name needs to be "path-matcher-1".
+  // Its default_service will handle "/*" for "nahueldog.duckdns.org".
+  // Its dynamic path_rule will handle "/api/*" for "nahueldog.duckdns.org".
   path_matcher {
-    name            = "allpaths"
-    default_service = var.default_backend_service # GCS bucket
+    name            = "path-matcher-1"            // MODIFIED: Changed from "allpaths"
+    default_service = var.default_backend_service // This is module.storage.backend_bucket_self_link via variable
 
+    // Path rule for the GKE API backend
     dynamic "path_rule" {
-      for_each = var.enable_gke_backend ? [1] : []
+      for_each = var.enable_gke_backend ? [1] : [] // Ensure var.enable_gke_backend is true
       content {
         paths   = ["/api/*"]
         service = google_compute_backend_service.gke_ms1_backend[0].self_link
       }
     }
 
-    path_rule {
-      paths   = ["/*"]
-      service = var.default_backend_service
-    }
+    // REMOVED the static path_rule for paths = ["/*"].
+    // The default_service of this path_matcher ("path-matcher-1") will handle requests
+    // to "nahueldog.duckdns.org/*" that don't match the "/api/*" path_rule.
   }
 }
-
 
 # HTTP(S) Load Balancer - HTTPS proxy
 resource "google_compute_target_https_proxy" "main" {
