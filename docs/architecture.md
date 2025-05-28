@@ -13,12 +13,73 @@ The platform follows a microservices pattern with a decoupled frontend, asynchro
 * **Scalability & Orchestration**: Backend microservices are containerized with Docker and orchestrated by Google Kubernetes Engine (GKE).
 * **Global Delivery**: Frontend assets are served from Google Cloud Storage (GCS) via an HTTP(S) Load Balancer with Cloud CDN.
 
-## System Flow Diagram
-User Browser --> GCP HTTP(S) Load Balancer --> [Frontend: GCS Bucket + CDN]
-|
---> [Backend API Path (/api/*) --> Microservice 1 (GKE)] --(Event)--> Pub/Sub Topic
-|
-+--(Subscription)--> Microservice 2 (GKE) --> Firestore Database
+## System Flow and Architecture Diagram
+graph TB
+    subgraph "Google Cloud"
+        CA[Cloud Armor]
+        LB["HTTP(S) Load Balancer (L7)"]
+        subgraph "Frontend Hosting"
+            GCS["GCS Bucket (Vue SPA)"]
+            CDN["Cloud CDN"]
+        end
+
+        subgraph "GKE Cluster (us-central1)"
+            NGINX[NGINX Ingress Controller]
+            subgraph "Node Pool"
+                MS1[Microservice 1 (API Gateway)]
+                MS2[Microservice 2 (Processor)]
+            end
+            HPA1["HPA MS1"]
+            HPA2["HPA MS2"]
+        end
+
+        subgraph "Pub/Sub"
+            TOPIC["items-topic"]
+            SUB["items-subscription"]
+            DLT["dead-letter-topic"]
+        end
+
+        subgraph "Firestore"
+            DB["Firestore (Native Mode)"]
+        end
+
+        subgraph "VPC & Infra"
+            VPC["Custom VPC"]
+            NAT["Cloud NAT"]
+            FW["Firewall Rules"]
+        end
+
+        subgraph "Operations"
+            CM[Cloud Monitoring]
+            CL[Cloud Logging]
+        end
+
+    end
+
+    User[User Browser] -->|HTTPS| CA --> LB
+
+    LB -->|/api/*| NGINX --> MS1
+    LB -->|other| GCS --> CDN
+
+    MS1 -->|Event| TOPIC
+    TOPIC -->|Sub| MS2
+    MS2 --> DB
+
+    MS1 -.-> CM
+    MS2 -.-> CM
+    MS1 -.-> CL
+    MS2 -.-> CL
+
+    MS1 -.->|Scale| HPA1
+    MS2 -.->|Scale| HPA2
+
+    MS2 -->|DLQ| DLT
+
+    VPC -.-> MS1
+    VPC -.-> MS2
+    NAT -.-> MS1
+    NAT -.-> MS2
+
 
 ## Component Breakdown
 
