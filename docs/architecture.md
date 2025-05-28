@@ -14,6 +14,7 @@ The platform follows a microservices pattern with a decoupled frontend, asynchro
 * **Global Delivery**: Frontend assets are served from Google Cloud Storage (GCS) via an HTTP(S) Load Balancer with Cloud CDN.
 
 ## System Flow Diagram Architecture Diagram
+
 ```mermaid
 sequenceDiagram
     actor User
@@ -46,6 +47,7 @@ sequenceDiagram
     Firestore-->>MS2: Acknowledge Write
     MS2-->>PubSub: Acknowledge Message (ack)
 ```
+
 ## High-Level Component Architecture Diagram
 ```mermaid
 graph TD
