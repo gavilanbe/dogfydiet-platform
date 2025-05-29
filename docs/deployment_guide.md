@@ -21,7 +21,7 @@ Before you begin, ensure you have the following tools installed and configured:
 
 ### a. Clone Repository
 ```bash
-git clone [https://github.com/your-username/dogfydiet-platform.git](https://github.com/your-username/dogfydiet-platform.git)
+git clone https://github.com/gavilanbe/dogfydiet-platform.git
 cd dogfydiet-platform
 ```
 
