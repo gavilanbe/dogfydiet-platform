@@ -15,6 +15,7 @@ Before you begin, ensure you have the following tools installed and configured:
 * **Docker**: Containerization platform. [Installation Guide](https://docs.docker.com/engine/install/)
 * **Node.js & npm/yarn**: For local application development and building the frontend. [Node.js Website](https://nodejs.org/)
 * **Git**: For cloning the repository.
+* **Make**: Most systems have `make` installed. It's used to simplify command execution via the `Makefile`.
 
 ## 1. Project Configuration & Setup
 
@@ -28,12 +29,16 @@ cd dogfydiet-platform
 Terraform uses a Google Cloud Storage (GCS) bucket for its remote state backend.
 
 * **Option 1: Use Bootstrap Script (Recommended)**
-    The `scripts/bootstrap.sh` script can create this bucket for you. \[cite: 354-365\]
+    The `scripts/bootstrap.sh` script can create this bucket for you.
     ```bash
     chmod +x scripts/bootstrap.sh
     ./scripts/bootstrap.sh
     ```
-    This script will:
+    Alternatively, you can use the Makefile:
+    ```bash
+    make bootstrap
+    ```
+    This script/command will:
     1.  Prompt for your GCP Project ID (defaults to `nahuelgabe-test`).
     2.  Create a GCS bucket named `YOUR_PROJECT_ID-terraform-state` (e.g., `nahuelgabe-test-terraform-state` if it uses the default project ID from the script) if it doesn't exist. The Terraform configuration in `terraform/environments/dev/main.tf` specifies `nahuelgabe-test-terraform-state`.
     3.  Update or create `terraform/environments/dev/backend.tf` with this bucket name (the script intends to create `terraform/environments/dev/backend.tf`, ensure this aligns with `main.tf`'s backend block or consolidate).
@@ -64,30 +69,29 @@ The `notification_email` variable should also be set to your desired email for m
 
 ## 2. Infrastructure Provisioning with Terraform
 
-Navigate to the development environment directory:
-```bash
-cd terraform/environments/dev
-```
+The provided `Makefile` simplifies Terraform operations by wrapping the necessary commands. These `make` commands should be run from the root of the project directory.
 
 Initialize Terraform (downloads providers and configures the backend):
 ```bash
-terraform init
+make init
 ```
 
 Review the execution plan (shows what resources Terraform will create, modify, or destroy):
 ```bash
-terraform plan
+make plan
 ```
 
 Apply the infrastructure changes:
 ```bash
-terraform apply
+make apply
 ```
-Confirm by typing `yes` when prompted. This process will take several minutes as it provisions all GCP resources. Key outputs like the Load Balancer IP and GKE cluster name will be displayed upon completion. \[cite: 9-15\]
+Confirm by typing `yes` when prompted. This process will take several minutes as it provisions all GCP resources. Key outputs like the Load Balancer IP and GKE cluster name will be displayed upon completion.
+
+The `Makefile` also provides other useful commands like `make lint` and `make validate`. Check the `Makefile` for all available targets by running `make help`.
 
 ## 3. Configure `kubectl` for GKE Cluster
 
-Once Terraform completes, it will output a command to configure `kubectl` (look for the `kubectl_config` output). Copy and run this command. It will look similar to:
+Once Terraform completes (either via `make apply` or direct `terraform apply`), it will output a command to configure `kubectl` (look for the `kubectl_config` output). Copy and run this command. It will look similar to:
 ```bash
 # Example from Terraform output
 gcloud container clusters get-credentials dogfydiet-dev-cluster --region us-central1 --project nahuelgabe-test
@@ -127,18 +131,20 @@ docker push $IMAGE_NAME_MS1
 
 **For Microservice 2:**
 ```bash
-cd applications/microservice-2
+cd ../microservice-2 # Assuming you are in applications/microservice-1
 
 # Replace with your actual image name from Terraform output
 IMAGE_NAME_MS2="<YOUR_ARTIFACT_REGISTRY_URL>/microservice-2:latest" # e.g., us-central1-docker.pkg.dev/nahuelgabe-test/dogfydiet-dev-docker-repo/microservice-2:latest
 
 docker build -t $IMAGE_NAME_MS2 .
 docker push $IMAGE_NAME_MS2
+
+cd ../.. # Return to project root
 ```
 *(Ensure you replace `<YOUR_ARTIFACT_REGISTRY_URL>` with the actual URL from Terraform output `docker_repository_url` and `<YOUR_ARTIFACT_REGISTRY_REGION>` with the region like `us-central1`.)*
 
 ### b. Deploy Backend Microservices using Helm
-Update the `values.yaml` file for each Helm chart (`k8s/helm-charts/microservice-1/values.yaml` \[cite: 320-325\] and `k8s/helm-charts/microservice-2/values.yaml` \[cite: 267-271\]) with the correct:
+Update the `values.yaml` file for each Helm chart (`k8s/helm-charts/microservice-1/values.yaml` and `k8s/helm-charts/microservice-2/values.yaml`) with the correct:
 * `image.repository`: The full path to your image in Artifact Registry (e.g., `us-central1-docker.pkg.dev/nahuelgabe-test/dogfydiet-dev-docker-repo/microservice-1`).
 * `image.tag`: The tag you used (e.g., `latest`).
 * `serviceAccount.annotations."iam.gke.io/gcp-service-account"`: The GCP service account email for the respective microservice. These are outputs from Terraform (e.g., `module.iam.microservice_1_service_account`).
@@ -151,14 +157,12 @@ Update the `values.yaml` file for each Helm chart (`k8s/helm-charts/microservice
 
 **Deploy Microservice 1:**
 ```bash
-cd k8s/helm-charts/microservice-1
-helm install microservice-1 . -n default # Or your desired namespace
+helm install microservice-1 k8s/helm-charts/microservice-1/ -n default # Or your desired namespace
 ```
 
 **Deploy Microservice 2:**
 ```bash
-cd ../microservice-2 # Assuming you are in k8s/helm-charts
-helm install microservice-2 . -n default # Or your desired namespace
+helm install microservice-2 k8s/helm-charts/microservice-2/ -n default # Or your desired namespace
 ```
 
 Verify deployments:
@@ -168,7 +172,7 @@ kubectl get pods -n default
 ```
 
 ### c. Deploy Frontend Application
-The frontend is a Vue.js application. \[cite: 367, 370-401\]
+The frontend is a Vue.js application.
 
 **1. Set API URL Environment Variable (Important for Frontend Build):**
 The frontend needs to know the URL of Microservice 1. The Load Balancer IP is an output from Terraform (`load_balancer_ip` or `frontend_url`).
@@ -183,6 +187,7 @@ Replace `<LOAD_BALANCER_IP>` with the actual IP address from the Terraform outpu
 cd applications/frontend
 npm install # If you haven't already
 npm run build
+cd ../.. # Return to project root
 ```
 This creates a `dist/` directory with the static assets.
 
@@ -190,40 +195,37 @@ This creates a `dist/` directory with the static assets.
 The GCS bucket name for the frontend is an output from Terraform (`frontend_bucket_name`).
 ```bash
 # Example from Terraform output:
-# FRONTEND_BUCKET_NAME_OUTPUT=$(cd ../../terraform/environments/dev && terraform output -raw frontend_bucket_name)
-# gsutil -m rsync -r -d dist/ gs://${FRONTEND_BUCKET_NAME_OUTPUT}/
+# FRONTEND_BUCKET_NAME_OUTPUT=$(terraform -chdir=terraform/environments/dev output -raw frontend_bucket_name)
+# gsutil -m rsync -r -d applications/frontend/dist/ gs://${FRONTEND_BUCKET_NAME_OUTPUT}/
 
-# The Terraform output setup_instructions suggests:
-# Update GitHub secret FRONTEND_BUCKET_NAME with: ${module.storage.frontend_bucket_name}
-# So, obtain the bucket name from the output:
+# Obtain the bucket name from the output:
 # frontend_bucket_name = "dogfydiet-dev-frontend-xxxxxxxx" (example)
 
-gsutil -m rsync -r -d dist/ gs://<your-frontend-bucket-name>/ # Replace <your-frontend-bucket-name>
+gsutil -m rsync -r -d applications/frontend/dist/ gs://<your-frontend-bucket-name>/ # Replace <your-frontend-bucket-name>
 ```
 The `storage` Terraform module configures the bucket for public read access to objects.
 
 ## 5. Accessing the Application
 
 * **Frontend URL**: The application should be accessible via the Load Balancer's IP address. This is provided as a Terraform output `frontend_url` (e.g., `http://<LOAD_BALANCER_IP>`). If you configured DNS for `nahueldog.duckdns.org` to point to this IP, then `https://nahueldog.duckdns.org` should also work.
-* **Backend API (Microservice 1)**: Accessible via `http://<LOAD_BALANCER_IP>/api/items` (as per path rule in LB module and Microservice 1 routes \[cite: 474-481\]).
+* **Backend API (Microservice 1)**: Accessible via `http://<LOAD_BALANCER_IP>/api/items` (as per path rule in LB module and Microservice 1 routes).
 
 ## 6. Updating and Redeploying
 
-* **Infrastructure Changes**: Modify Terraform code, then run `terraform plan` and `terraform apply`.
+* **Infrastructure Changes**: Modify Terraform code, then run `make plan` and `make apply`.
 * **Application Changes**:
     1.  Rebuild Docker image(s) with a new tag (or `latest`).
     2.  Push to Artifact Registry.
     3.  Update `image.tag` in the relevant Helm `values.yaml`.
-    4.  Run `helm upgrade <release-name> . -n <namespace>` for the microservice.
-    5.  For frontend, rebuild (`npm run build`) and re-sync to GCS.
+    4.  Run `helm upgrade <release-name> k8s/helm-charts/<chart-name>/ -n <namespace>` for the microservice.
+    5.  For frontend, rebuild (`npm run build` in `applications/frontend`) and re-sync to GCS.
 
 Automating these update steps is the role of a CI/CD pipeline.
 
 ## 7. Destroying Infrastructure (Use with Extreme Caution)
 
-To remove all deployed resources:
+To remove all deployed resources managed by Terraform:
 ```bash
-cd terraform/environments/dev
-terraform destroy
+make destroy
 ```
-Confirm by typing `yes` when prompted. This will delete everything managed by Terraform in this configuration. \[cite: 259-261\]
+Confirm by typing `yes` when prompted. This will delete everything managed by Terraform in this configuration.
