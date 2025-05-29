@@ -23,10 +23,10 @@ For detailed information, please refer to the documentation in the `docs/` direc
 * **Event-Driven**: Asynchronous communication using Google Pub/Sub.
 * **Serverless Frontend**: Vue.js 3 SPA hosted on Google Cloud Storage, delivered via CDN and HTTP(S) Load Balancer.
 * **NoSQL Database**: Scalable data persistence with Google Firestore.
-* [cite_start]**Infrastructure as Code**: Entire infrastructure provisioned and managed by Terraform. 
+* **Infrastructure as Code**: Entire infrastructure provisioned and managed by Terraform. 
 * **Containerization**: Applications containerized with Docker and deployed using Helm.
-* [cite_start]**Comprehensive Security**: Workload Identity, Secret Manager, IAM best practices. 
-* [cite_start]**Built-in Observability**: Leveraging Google Cloud Monitoring and Logging. 
+* **Comprehensive Security**: Workload Identity, Secret Manager, IAM best practices. 
+* **Built-in Observability**: Leveraging Google Cloud Monitoring and Logging. 
 
 ## 🚀 Technology Stack
 
@@ -35,7 +35,7 @@ For detailed information, please refer to the documentation in the `docs/` direc
 * **Backend**: Node.js, Express.js
 * **Frontend**: Vue.js 3
 * **Containerization**: Docker, Helm
-* [cite_start]**CI/CD**: Structured for automation (e.g., GitHub Actions or CircleCI) 
+* **CI/CD**: Structured for automation (e.g., GitHub Actions or CircleCI) 
 
 ## 🛠️ Quick Start
 
