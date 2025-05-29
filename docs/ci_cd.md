@@ -137,7 +137,7 @@ Key goals of the CI/CD setup:
 
 ---
 
-## 4. Branching Strategy (Implied)
+## 4. Branching Strategy
 
 * **`main`**: The primary branch representing the latest stable state of the `dev` environment. Pushes to `main` trigger deployments.
 * **Feature Branches**: Developers should create branches from `main` for new features or fixes (e.g., `feature/new-api-endpoint`, `fix/login-bug`).
