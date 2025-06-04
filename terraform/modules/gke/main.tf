@@ -48,7 +48,7 @@ resource "google_container_cluster" "primary" {
   project  = var.project_id
   name     = "${var.name_prefix}-cluster"
   location = var.region
-
+  deletion_protection = false
   # We can't create a cluster with 0 nodes, but we want to only use
   # separately managed node pools. So we create the smallest possible default
   # node pool and immediately delete it.
